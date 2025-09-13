@@ -1,0 +1,256 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Torendo - Cart</title>
+  <link rel="stylesheet" type="text/css" href="{% static 'css/cart.css' %}">
+  <style>
+    .header {
+      font-size: 24px;
+      text-align: center;
+      padding: 20px;
+      background-color: #f4f4f4;
+      font-weight: bold;
+    }
+    .home-link {
+      position: fixed;
+      top: 25px;
+      left: 25px;
+      background: #333;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      z-index: 100;
+    }
+
+    .home-link:hover {
+      background-color: #555;
+      transform: scale(1.05);
+    }
+
+    .cart-container {
+      width: 80%;
+      margin: 0 auto;
+    }
+    .cart-item {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #ccc;
+      padding: 15px 0;
+    }
+    .cart-item img {
+      width: 100px;
+      margin-right: 20px;
+    }
+    .item-details {
+      flex-grow: 1;
+    }
+    .item-title {
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .item-price {
+      color: #555;
+      margin-top: 5px;
+    }
+    .quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap; /* Allow wrapping if space is tight */
+}
+
+.quantity-controls button {
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.quantity-controls button:hover {
+  background-color: #0056b3;
+}
+
+.quantity-controls input {
+  width: 50px;
+  text-align: center;
+  font-size: 16px;
+  padding: 5px;
+  border: 1px solid #ccc;
+}
+
+.remove-btn {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 8px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-left: auto; /* Push the button to the right */
+  min-width: 80px; /* Ensure enough space */
+}
+
+.remove-btn:hover {
+  background-color: darkred;
+}
+
+    .cart-summary {
+      font-size: 20px;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .place-order-btn {
+      margin-top: 20px;
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      text-decoration: none;
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a class="home-link" href="/">🏠 Home</a>
+    Torendo
+  </div>
+  
+  <div class="cart-container" id="cart-container">
+    <!-- JavaScript will populate the content -->
+  </div>
+
+  <script>
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    function renderCart() {
+      const container = document.getElementById("cart-container");
+      container.innerHTML = `
+        <a href="/products/" class="back-link">← Back to Products</a>
+      `;
+
+      if (cart.length === 0) {
+        container.innerHTML += "<p>Your cart is empty.</p>";
+        return;
+      }
+
+      let total = 0;
+
+      cart.forEach(item => {
+        total += item.price * item.quantity;
+
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "cart-item";
+        itemDiv.innerHTML = `
+          <img src="${item.image}" alt="${item.title}">
+          <div class="item-details">
+            <div class="item-title">${item.title}</div>
+            <div class="item-price">₹${item.price}</div>
+            <div class="quantity-controls">
+              <button onclick="changeQuantity(${item.id}, -1)">-</button>
+              <input type="number" value="${item.quantity}" min="1" onchange="setQuantity(${item.id}, this.value)">
+              <button onclick="changeQuantity(${item.id}, 1)">+</button>
+              <button class="remove-btn" onclick="removeItem(${item.id})">Remove</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(itemDiv);
+      });
+
+      const summaryDiv = document.createElement("div");
+      summaryDiv.className = "cart-summary";
+      summaryDiv.textContent = `Total: ₹${total}`;
+      container.appendChild(summaryDiv);
+
+      const orderBtn = document.createElement("button");
+      orderBtn.className = "place-order-btn";
+      orderBtn.textContent = "Place Order";
+      orderBtn.onclick = placeOrder;
+      container.appendChild(orderBtn);
+    }
+
+    function changeQuantity(id, delta) {
+      const item = cart.find(p => p.id === id);
+      if (item) {
+        item.quantity = Math.max(1, item.quantity + delta);
+        localStorage.setItem("cart", JSON.stringify(cart));
+        renderCart();
+      }
+    }
+
+    function setQuantity(id, value) {
+      const item = cart.find(p => p.id === id);
+      const qty = parseInt(value);
+      if (item && qty >= 1) {
+        item.quantity = qty;
+        localStorage.setItem("cart", JSON.stringify(cart));
+        renderCart();
+      }
+    }
+
+    function removeItem(id) {
+      cart = cart.filter(item => item.id !== id);
+      localStorage.setItem("cart", JSON.stringify(cart));
+      renderCart();
+    }
+  
+  const USERNAME = "{{ username }}";
+
+
+    function placeOrder() {
+      fetch("/place_order/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCSRFToken(),
+        },
+        body: JSON.stringify({ cart: cart ,name: USERNAME })
+      })
+      .then(response => {
+        if (response.ok) {
+          localStorage.removeItem("cart"); // Clear local cart
+          window.location.href = "/order_success/";
+        } else {
+          alert("Order failed. Try again.");
+        }
+      });
+    }
+
+    function getCSRFToken() {
+      let cookieValue = null;
+      const name = "csrftoken";
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          cookie = cookie.trim();
+          if (cookie.startsWith(name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    renderCart();
+  </script>
+</body>
+</html>

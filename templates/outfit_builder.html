@@ -1,0 +1,2194 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Outfit Builder</title>
+    <style>
+        /* General Body and Layout */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: url('https://wallpaperaccess.com/full/1448056.jpg') no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            padding: 0;
+            display: flex; /* Use flexbox for the entire body */
+            flex-direction: column; /* Stack header, main content vertically */
+            min-height: 100vh; /* Ensure body takes at least full viewport height */
+            color: #333;
+        }
+
+        /* Background Overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(251, 247, 247, 0.6); /* Slightly more opaque overlay */
+            z-index: -1;
+        }
+
+        /* Header Styling */
+        header {
+            background-color: #fff;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+            position: relative; /* For absolute positioning of links */
+            z-index: 10; /* Ensure header is above main content if any overlap */
+        }
+
+        .center-heading {
+            font-size: 2.2rem; /* Larger heading */
+            font-weight: 700;
+            color: #ff3f6c; /* Brand color */
+            margin: 0.5rem 0;
+            letter-spacing: 1.5px;
+        }
+
+        .welcome-message {
+            display: block;
+            font-size: 0.95rem;
+            color: #555;
+            margin-top: 0.3rem;
+        }
+
+        .home-link, .other-link {
+            position: absolute;
+            top: 20px;
+            background: #333;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            z-index: 100;
+        }
+
+        .home-link {
+            left: 20px;
+        }
+
+        .other-link {
+            right: 20px;
+        }
+
+        .home-link:hover, .other-link:hover {
+            background-color: #555;
+            transform: scale(1.03);
+        }
+
+        /* Main Content Wrapper (Flex Container for Canvas and Controls) */
+        /* This is the key for centering the main layout horizontally and vertically */
+        .main-content-wrapper {
+            display: flex;
+            flex-direction: column; /* Default to column for small screens */
+            justify-content: center; /* Center content vertically when column, horizontally when row */
+            align-items: center; /* Center content horizontally when column, vertically when row */
+            flex-grow: 1; /* Allow wrapper to take up available vertical space */
+            padding: 20px;
+            gap: 25px; /* Space between columns/elements */
+            box-sizing: border-box; /* Include padding in width/height calculations */
+        }
+
+        /* Media query for larger screens to switch to a row layout */
+        @media (min-width: 1024px) {
+            .main-content-wrapper {
+                flex-direction: row; /* Row layout for desktop */
+                /* align-items: center; and justify-content: center; already set above work for both */
+            }
+        }
+
+        /* Canvas Container */
+        #canvas-container {
+            position: relative;
+            border: 1px solid #e0e0e0;
+            width: 500px; /* Fixed width for canvas */
+            height: 600px; /* Fixed height for canvas */
+            background-color: #fff;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* Stronger shadow for depth */
+            border-radius: 12px; /* Rounded corners */
+            overflow: hidden; /* Hide any overflow from canvas content */
+            flex-shrink: 0; /* Prevent canvas from shrinking */
+            max-width: 90vw; /* Responsive: don't let it be wider than viewport */
+            max-height: 90vh; /* Responsive: don't let it be taller than viewport */
+        }
+
+        #tshirtCanvas {
+            width: 100%;
+            height: 100%;
+            background-color: #f8f8f8; /* Lighter background for canvas */
+            cursor: grab; /* Indicate draggable */
+        }
+
+        #tshirtCanvas:active {
+            cursor: grabbing;
+        }
+
+        /* Individual Control Column Styling (e.g., Category Controls, Design Controls) */
+        .controls-column {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 18px; /* Space between elements within a column */
+            width: 100%; /* Take full width on smaller screens */
+            max-width: 400px; /* Max width for controls on larger screens */
+            box-sizing: border-box;
+        }
+
+        .controls-column label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            display: block; /* Ensures label takes its own line */
+            font-size: 0.95rem;
+        }
+
+        .controls-column select,
+        .controls-column input[type="text"],
+        .controls-column input[type="range"],
+        .controls-column input[type="file"] {
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: calc(100% - 30px); /* Adjust for padding to make it full width */
+            box-sizing: border-box;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .controls-column select:focus,
+        .controls-column input[type="text"]:focus,
+        .controls-column input[type="range"]:focus,
+        .controls-column input[type="file"]:focus {
+            border-color: #ff3f6c; /* Highlight on focus */
+            box-shadow: 0 0 0 3px rgba(255, 63, 108, 0.2); /* Soft glow on focus */
+            outline: none; /* Remove default outline */
+        }
+
+        /* Special styling for color input */
+        .controls-column input[type="color"] {
+            -webkit-appearance: none; /* Remove default browser styling */
+            -moz-appearance: none;
+            appearance: none;
+            border: none;
+            padding: 0;
+            width: 45px; /* Fixed size for color picker */
+            height: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); /* Subtle inner shadow */
+        }
+
+        .controls-column input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .controls-column input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 5px;
+        }
+
+        /* Combined label and input for dot size and font size */
+        .size-group {
+            display: flex;
+            align-items: center; /* Align items vertically in the center */
+            gap: 10px;
+        }
+        .size-group label {
+            margin-bottom: 0; /* Remove extra margin */
+            flex-shrink: 0; /* Prevent label from shrinking */
+        }
+        .size-group input[type="range"] {
+            flex-grow: 1; /* Allow slider to take available space */
+            width: auto; /* Override default width for range input */
+            padding: 0;
+            height: 25px; /* Adjust height for range input */
+        }
+
+        .size-group .value-display {
+            font-weight: 500;
+            color: #555;
+            min-width: 30px; /* Ensure value has space */
+            text-align: right;
+            flex-shrink: 0; /* Prevent value from shrinking */
+        }
+
+        /* Buttons */
+        .controls-column button {
+            background-color: #ff3f6c; /* Primary brand color for buttons */
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 10px rgba(255, 63, 108, 0.2);
+            align-self: flex-start; /* Align button to the start of the flex container */
+            width: fit-content; /* Button width adjusts to content */
+        }
+
+        .controls-column button:hover {
+            background-color: #e0305a; /* Darker on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+            box-shadow: 0 6px 15px rgba(255, 63, 108, 0.3);
+        }
+
+        .controls-column button:active {
+            transform: translateY(0); /* Press down effect */
+            box-shadow: 0 2px 5px rgba(255, 63, 108, 0.2);
+        }
+
+        /* Estimated Cost */
+        .controls-column p {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px dashed #eee; /* Separator line */
+            width: 100%;
+            text-align: center;
+            font-size: 1.05rem;
+            color: #444;
+        }
+
+        #estimatedCost {
+            font-weight: bold;
+            color: #007bff; /* Accent color for cost */
+            font-size: 1.3rem;
+            margin-left: 8px;
+        }
+
+        /* Button Group at the bottom of design controls */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap; /* Allow buttons to wrap to next line */
+            gap: 10px; /* Space between buttons */
+            margin-top: 15px;
+            justify-content: flex-start; /* Align buttons to the start */
+        }
+
+        .button-group button {
+            flex-grow: 1; /* Allow buttons to grow and fill space */
+            min-width: 120px; /* Minimum width for buttons */
+            text-align: center;
+            align-self: stretch; /* Make buttons the same height */
+            padding: 10px 15px; /* Slightly smaller padding for group buttons */
+            font-size: 0.95rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            background-color: #5cb85c; /* Default button group color (e.g., Save) */
+        }
+        /* Specific colors for different action buttons */
+        .button-group button#undoBtn,
+        .button-group button#redoBtn {
+            background-color: #f0ad4e; /* Orange for Undo/Redo */
+        }
+        .button-group button#exportBtn,
+        .button-group button#exportPdfBtn {
+            background-color: #5bc0de; /* Blue for Export */
+        }
+        .button-group button#saveDesignBtn {
+            background-color: #007bff; /* Distinct blue for Save */
+        }
+        .button-group button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .home-link, .other-link {
+                position: static; /* Make links stack vertically */
+                display: block;
+                width: calc(100% - 40px); /* Full width minus padding */
+                text-align: center;
+                margin: 10px auto; /* Center them */
+            }
+
+            header {
+                padding-bottom: 10px;
+            }
+
+            .center-heading {
+                font-size: 1.8rem;
+            }
+
+            .main-content-wrapper {
+                padding: 15px;
+                gap: 20px;
+            }
+
+            #canvas-container {
+                width: 100%;
+                max-width: 400px; /* Limit canvas size on smaller screens */
+                height: 480px; /* Adjust height for smaller screens */
+                margin: 0 auto; /* Center canvas horizontally */
+            }
+
+            .controls-column {
+                padding: 20px;
+                gap: 15px;
+                max-width: 100%; /* Allow columns to take full width on small screens */
+            }
+
+            .button-group {
+                flex-direction: column; /* Stack buttons vertically on small screens */
+            }
+
+            .button-group button {
+                width: 100%; /* Full width for stacked buttons */
+                min-width: unset; /* Remove min-width constraint */
+            }
+        }
+
+        /* New styles for pattern selection grid */
+        #patternSelectionGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Responsive grid */
+            gap: 10px;
+            margin-top: 10px;
+            padding: 5px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            max-height: 200px; /* Limit height and make scrollable */
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+
+        .pattern-thumbnail {
+            width: 80px;
+            height: 80px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column; /* To stack name and pattern */
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7rem; /* Smaller font for name */
+            text-align: center;
+            color: #555;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            position: relative; /* For the checkmark */
+            overflow: hidden; /* Hide overflow for patterns */
+            padding-top: 20px; /* Space for the name */
+        }
+
+        .pattern-thumbnail.selected {
+            border-color: #ff3f6c; /* Highlight selected pattern */
+            box-shadow: 0 0 0 3px rgba(255, 63, 108, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .pattern-thumbnail:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+
+        .pattern-thumbnail::after {
+            content: '✔';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            color: #ff3f6c;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+        }
+
+        .pattern-thumbnail.selected::after {
+            display: block; /* Show checkmark when selected */
+        }
+
+        .pattern-thumbnail .pattern-name {
+            position: absolute;
+            top: 5px;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+            font-size: 0.75rem;
+            z-index: 2; /* Ensure name is above pattern */
+        }
+
+        .pattern-thumbnail .pattern-visual {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.3; /* Make patterns semi-transparent */
+        }
+
+        /* Basic CSS patterns for demonstration */
+        .pattern-thumbnail[data-pattern="none"] .pattern-visual {
+            background-color: #f0f0f0;
+            opacity: 1;
+        }
+        .pattern-thumbnail[data-pattern="dots"] .pattern-visual {
+            background-image: radial-gradient(#333 15%, transparent 15%);
+            background-size: 20px 20px;
+        }
+        .pattern-thumbnail[data-pattern="checkerboard"] .pattern-visual {
+            background-image:
+                linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc),
+                linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+        .pattern-thumbnail[data-pattern="diagonal-stripes"] .pattern-visual {
+            background-image: linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+        }
+        .pattern-thumbnail[data-pattern="crosshatch"] .pattern-visual {
+            background-image:
+                linear-gradient(to right, #ccc 1px, transparent 1px),
+                linear-gradient(to bottom, #ccc 1px, transparent 1px);
+            background-size: 10px 10px;
+        }
+        .pattern-thumbnail[data-pattern="diamonds"] .pattern-visual {
+            background-image:
+                linear-gradient(45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%),
+                linear-gradient(-45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%);
+            background-size: 20px 20px;
+        }
+        /* Enhanced CSS patterns for demonstration */
+        .pattern-thumbnail[data-pattern="floral"] .pattern-visual {
+            background-image:
+                radial-gradient(circle at 50% 50%, #ccc 15%, transparent 15%), /* Center dot */
+                radial-gradient(circle at 20% 40%, #ccc 10%, transparent 10%),
+                radial-gradient(circle at 80% 40%, #ccc 10%, transparent 10%),
+                radial-gradient(circle at 35% 75%, #ccc 10%, transparent 10%),
+                radial-gradient(circle at 65% 75%, #ccc 10%, transparent 10%);
+            background-size: 30px 30px;
+            background-repeat: repeat;
+        }
+        .pattern-thumbnail[data-pattern="paisleys"] .pattern-visual {
+            background-image:
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 30 40"><path fill="%23ccc" d="M15 0 C25 10 25 30 15 40 C5 30 5 10 15 0 Z M15 10 A5 5 0 0 1 15 20 A5 5 0 0 1 15 10 Z"/></svg>');
+            background-size: 30px 40px;
+            background-repeat: repeat;
+            background-position: center;
+        }
+        .pattern-thumbnail[data-pattern="damask"] .pattern-visual {
+            background-image:
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><path fill="%23ccc" d="M25 0 L35 15 L50 25 L35 35 L25 50 L15 35 L0 25 L15 15 Z"/></svg>');
+            background-size: 50px 50px;
+            background-repeat: repeat;
+        }
+        .pattern-thumbnail[data-pattern="scroll"] .pattern-visual {
+            background-image:
+                linear-gradient(90deg, transparent 50%, #ccc 50%),
+                linear-gradient(180deg, transparent 50%, #ccc 50%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px; /* Creates a small checker-like effect */
+            /* This is a very simplified scroll, more like a woven texture. */
+        }
+        .pattern-thumbnail[data-pattern="argyle"] .pattern-visual {
+            background-image:
+                linear-gradient(45deg, transparent 45%, #ccc 45%, #ccc 55%, transparent 55%),
+                linear-gradient(-45deg, transparent 45%, #ccc 45%, #ccc 55%, transparent 55%);
+            background-size: 20px 20px;
+        }
+        .pattern-thumbnail[data-pattern="trellis"] .pattern-visual {
+            background-image:
+                linear-gradient(45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%),
+                linear-gradient(-45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%);
+            background-size: 20px 20px;
+        }
+        .pattern-thumbnail[data-pattern="ogee"] .pattern-visual {
+            background-image:
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><path fill="none" stroke="%23ccc" stroke-width="2" d="M0 10 Q10 0 20 10 Q30 20 40 10"/></svg>');
+            background-size: 40px 20px;
+            background-repeat: repeat-x;
+        }
+        .pattern-thumbnail[data-pattern="chevron"] .pattern-visual {
+            background-image: linear-gradient(45deg, transparent 25%, #ccc 25%, #ccc 50%, transparent 50%, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+        }
+        .pattern-thumbnail[data-pattern="aboriginal"] .pattern-visual {
+            background-image: radial-gradient(circle, #ccc 10%, transparent 10%), radial-gradient(circle at 100% 100%, #ccc 10%, transparent 10%);
+            background-size: 15px 15px;
+            background-position: 0 0, 7.5px 7.5px;
+        }
+        .pattern-thumbnail[data-pattern="houndstooth"] .pattern-visual {
+            background-image:
+                linear-gradient(45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%),
+                linear-gradient(-45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px; /* Slight offset for houndstooth effect */
+        }
+        .pattern-thumbnail[data-pattern="moroccan"] .pattern-visual {
+            background-image:
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><path fill="%23ccc" d="M20 0 L30 10 L40 20 L30 30 L20 40 L10 30 L0 20 L10 10 Z"/></svg>');
+            background-size: 40px 40px;
+            background-repeat: repeat;
+        }
+        .pattern-thumbnail[data-pattern="fleur-de-lis"] .pattern-visual {
+            background-image:
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30"><path fill="%23ccc" d="M15 0 C10 10 10 20 15 30 C20 20 20 10 15 0 Z M10 10 C15 5 20 10 15 15 C10 10 5 5 10 10 Z"/></svg>');
+            background-size: 30px 30px;
+            background-repeat: repeat;
+        }
+        .pattern-thumbnail[data-pattern="quatrefoil"] .pattern-visual {
+            background-image:
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="10" cy="10" r="10" fill="%23ccc"/><circle cx="30" cy="10" r="10" fill="%23ccc"/><circle cx="10" cy="30" r="10" fill="%23ccc"/><circle cx="30" cy="30" r="10" fill="%23ccc"/></svg>');
+            background-size: 40px 40px;
+            background-repeat: repeat;
+        }
+        .pattern-thumbnail[data-pattern="lattice"] .pattern-visual {
+            background-image:
+                linear-gradient(to right, #ccc 1px, transparent 1px),
+                linear-gradient(to bottom, #ccc 1px, transparent 1px);
+            background-size: 15px 15px;
+        }
+        /* Added new patterns */
+        .pattern-thumbnail[data-pattern="waves"] .pattern-visual {
+            background-image:
+                radial-gradient(circle at 100% 0%, transparent 20%, #ccc 20%, #ccc 22%, transparent 22%),
+                radial-gradient(circle at 0% 100%, transparent 20%, #ccc 20%, #ccc 22%, transparent 22%);
+            background-size: 40px 40px;
+        }
+        .pattern-thumbnail[data-pattern="bricks"] .pattern-visual {
+            background-image:
+                linear-gradient(90deg, #ccc 1px, transparent 1px),
+                linear-gradient(180deg, #ccc 1px, transparent 1px);
+            background-size: 20px 10px;
+            background-position: 0 0, 10px 5px;
+        }
+        .pattern-thumbnail[data-pattern="honeycomb"] .pattern-visual {
+            background-image:
+                url('data:image/svg+xml;utf8,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M0 10 L5 0 L15 0 L20 10 L15 20 L5 20 Z" fill="none" stroke="%23ccc" stroke-width="1"/></svg>');
+            background-size: 20px 20px;
+            background-repeat: repeat;
+            background-position: 0 0;
+        }
+        .pattern-thumbnail[data-pattern="scales"] .pattern-visual {
+            background-image:
+                radial-gradient(circle at 50% 100%, transparent 49%, #ccc 50%);
+            background-size: 20px 20px;
+            background-repeat: repeat-x;
+            background-position: 0 0, 10px 10px;
+        }
+        .pattern-thumbnail[data-pattern="weave"] .pattern-visual {
+            background-image:
+                linear-gradient(to right, #ccc 2px, transparent 2px, transparent 8px, #ccc 8px),
+                linear-gradient(to bottom, #ccc 2px, transparent 2px, transparent 8px, #ccc 8px);
+            background-size: 10px 10px;
+            background-position: 0 0, 5px 5px;
+        }
+        .pattern-thumbnail[data-pattern="concentric-circles"] .pattern-visual {
+            background-image:
+                radial-gradient(circle, #ccc 10%, transparent 10%, transparent 20%, #ccc 20%, #ccc 30%, transparent 30%);
+            background-size: 40px 40px;
+        }
+        .pattern-thumbnail[data-pattern="stripes-vertical"] .pattern-visual {
+            background-image: linear-gradient(to right, #ccc 50%, transparent 50%);
+            background-size: 20px 100%;
+        }
+        .pattern-thumbnail[data-pattern="stripes-horizontal"] .pattern-visual {
+            background-image: linear-gradient(to bottom, #ccc 50%, transparent 50%);
+            background-size: 100% 20px;
+        }
+        .pattern-thumbnail[data-pattern="dots-small"] .pattern-visual {
+            background-image: radial-gradient(#333 5%, transparent 5%);
+            background-size: 10px 10px;
+        }
+        .pattern-thumbnail[data-pattern="grid"] .pattern-visual {
+            background-image:
+                linear-gradient(to right, #ccc 2px, transparent 2px),
+                linear-gradient(to bottom, #ccc 2px, transparent 2px);
+            background-size: 20px 20px;
+        }
+        .pattern-thumbnail[data-pattern="herringbone"] .pattern-visual {
+            background-image:
+                linear-gradient(45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%),
+                linear-gradient(-45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 0; /* Offset to create herringbone effect */
+        }
+        .pattern-thumbnail[data-pattern="basketweave"] .pattern-visual {
+            background-image:
+                linear-gradient(90deg, #ccc 33%, transparent 33%, transparent 66%, #ccc 66%),
+                linear-gradient(0deg, transparent 33%, #ccc 33%, #ccc 66%, transparent 66%);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+        }
+        .pattern-thumbnail[data-pattern="zig-zag"] .pattern-visual {
+            background-image:
+                linear-gradient(135deg, transparent 25%, #ccc 25%, #ccc 50%, transparent 50%),
+                linear-gradient(-135deg, transparent 25%, #ccc 25%, #ccc 50%, transparent 50%);
+            background-size: 30px 30px;
+        }
+        .pattern-thumbnail[data-pattern="polka-large"] .pattern-visual {
+            background-image: radial-gradient(#333 25%, transparent 25%);
+            background-size: 40px 40px;
+        }
+        .pattern-thumbnail[data-pattern="pyramids"] .pattern-visual {
+            background-image:
+                linear-gradient(45deg, transparent 50%, #ccc 50%),
+                linear-gradient(-45deg, transparent 50%, #ccc 50%);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a class="home-link" href="/"> 🏠 Home</a>
+        <h1 class="center-heading">Torendo Custom Outfit Builder</h1>
+        {% if user.is_authenticated %}
+            <span class="welcome-message">Welcome, {{ user.username }}</span>
+            <a class="other-link" href="{% url 'my_designs' %}" style="margin-right: 10px;">My Designs</a>
+        {% else %}
+            <a class="other-link" href="{% url 'signin' %}">Login</a> to save your designs
+        {% endif %}
+    </header>
+
+    <div class="main-content-wrapper">
+        <div class="controls-column" id="categoryControls">
+            <label for="categorySelect">Category:</label>
+            <select id="categorySelect">
+                <option value="T-Shirt">T-Shirt</option>
+                <option value="Hoodie">Hoodie</option>
+                <option value="Shirt">Shirt</option>
+            </select>
+
+            <label for="colorInput">Color:</label>
+            <input type="color" id="colorInput" value="#000000">
+
+            <label for="sleeveSelect">Sleeve:</label>
+            <select id="sleeveSelect">
+                <option value="Half">Half</option>
+                <option value="Full">Full</option>
+            </select>
+
+            <label for="fabricSelect">Fabric Type:</label>
+            <select id="fabricSelect">
+                <option value="Cotton">Cotton</option>
+                <option value="Silk">Silk</option>
+                <option value="Polyester">Polyester</option>
+                <option value="Linen">Linen</option>
+            </select>
+
+            <label>Pattern:</label>
+            <div id="patternSelectionGrid">
+                <div class="pattern-thumbnail" data-pattern="none" title="None">
+                    <span class="pattern-name">None</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="dots" title="Dots">
+                    <span class="pattern-name">Dots</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="checkerboard" title="Checkerboard">
+                    <span class="pattern-name">Checkerboard</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="diagonal-stripes" title="Diagonal Stripes">
+                    <span class="pattern-name">Diagonal Stripes</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="crosshatch" title="Crosshatch">
+                    <span class="pattern-name">Crosshatch</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="diamonds" title="Diamonds">
+                    <span class="pattern-name">Diamonds</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="floral" title="Floral (Simplified)">
+                    <span class="pattern-name">Floral</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="paisleys" title="Paisleys (Simplified)">
+                    <span class="pattern-name">Paisleys</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="damask" title="Damask (Simplified)">
+                    <span class="pattern-name">Damask</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="scroll" title="Scroll">
+                    <span class="pattern-name">Scroll</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="argyle" title="Argyle">
+                    <span class="pattern-name">Argyle</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="trellis" title="Trellis">
+                    <span class="pattern-name">Trellis</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="ogee" title="Ogee">
+                    <span class="pattern-name">Ogee</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="chevron" title="Chevron">
+                    <span class="pattern-name">Chevron</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="aboriginal" title="Aboriginal Dots">
+                    <span class="pattern-name">Aboriginal</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="houndstooth" title="Houndstooth">
+                    <span class="pattern-name">Houndstooth</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="moroccan" title="Moroccan Tile">
+                    <span class="pattern-name">Moroccan</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="fleur-de-lis" title="Fleur de Lis">
+                    <span class="pattern-name">Fleur-de-Lis</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="quatrefoil" title="Quatrefoil">
+                    <span class="pattern-name">Quatrefoil</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="lattice" title="Lattice">
+                    <span class="pattern-name">Lattice</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="waves" title="Waves">
+                    <span class="pattern-name">Waves</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="bricks" title="Bricks">
+                    <span class="pattern-name">Bricks</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="honeycomb" title="Honeycomb">
+                    <span class="pattern-name">Honeycomb</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="scales" title="Scales">
+                    <span class="pattern-name">Scales</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="weave" title="Weave">
+                    <span class="pattern-name">Weave</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="concentric-circles" title="Concentric Circles">
+                    <span class="pattern-name">Concentric Circles</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="stripes-vertical" title="Vertical Stripes">
+                    <span class="pattern-name">V. Stripes</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="stripes-horizontal" title="Horizontal Stripes">
+                    <span class="pattern-name">H. Stripes</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="dots-small" title="Small Dots">
+                    <span class="pattern-name">Small Dots</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="grid" title="Grid">
+                    <span class="pattern-name">Grid</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="herringbone" title="Herringbone">
+                    <span class="pattern-name">Herringbone</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="basketweave" title="Basketweave">
+                    <span class="pattern-name">Basketweave</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="zig-zag" title="Zig Zag">
+                    <span class="pattern-name">Zig Zag</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="polka-large" title="Large Polka Dots">
+                    <span class="pattern-name">L. Polka</span>
+                    <div class="pattern-visual"></div>
+                </div>
+                <div class="pattern-thumbnail" data-pattern="pyramids" title="Pyramids">
+                    <span class="pattern-name">Pyramids</span>
+                    <div class="pattern-visual"></div>
+                </div>
+            </div>
+
+            <label for="patternColor">Pattern Color:</label>
+            <input type="color" id="patternColor" value="#000000">
+
+            <div class="size-group">
+                <label for="dotSize">Pattern Scale/Density:</label>
+                <input type="range" id="dotSize" min="5" max="50" value="20">
+                <span class="value-display" id="dotSizeValue">20</span> px
+            </div>
+
+            <button type="button" id="loadPresetBtn">Load Outfit</button>
+            <p>Estimated Cost: <span id="estimatedCost">₹0</span></p>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="tshirtCanvas" width="600" height="600"></canvas>
+        </div>
+
+        <div class="controls-column" id="designControls">
+            <label for="tshirtImageInput">Upload T-shirt Image (PNG/JPG):</label>
+            <input type="file" id="tshirtImageInput" accept="image/*" />
+
+            <label for="tshirtColor">T-shirt Base Color:</label>
+            <input type="color" id="tshirtColor" value="#ffffff" />
+
+            <label for="textInput">Add Text:</label>
+            <input type="text" id="textInput" placeholder="Type text here" />
+
+            <label for="textColor">Text Color:</label>
+            <input type="color" id="textColor" value="#000000" />
+
+            <label for="fontSelect">Font Style:</label>
+            <select id="fontSelect">
+                <option value="Arial" selected>Arial</option>
+                <option value="Comic Sans MS">Comic Sans MS</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Trebuchet MS">Trebuchet MS</option>
+                <option value="Impact">Impact</option>
+                <option value="Lucida Console">Lucida Console</option>
+                <option value="Tahoma">Tahoma</option>
+                <option value="Palatino Linotype">Palatino Linotype</option>
+                <option value="Garamond">Garamond</option>
+                <option value="Bookman">Bookman</option>
+                <option value="Arial Black">Arial Black</option>
+                <option value="Brush Script MT">Brush Script MT</option>
+                <option value="Century Gothic">Century Gothic</option>
+                <option value="Copperplate">Copperplate</option>
+                <option value="Candara">Candara</option>
+                <option value="Consolas">Consolas</option>
+                <option value="Franklin Gothic Medium">Franklin Gothic Medium</option>
+            </select>
+
+            <div class="size-group">
+                <label for="fontSizeInput">Font Size:</label>
+                <input type="range" id="fontSizeInput" min="10" max="100" value="40">
+                <span class="value-display" id="fontSizeValue">40</span> px
+            </div>
+            
+            <button type="button" id="addTextBtn">Add Text</button>
+
+            <label for="logoImageInput">Upload Logo/Image to Overlay:</label>
+            <input type="file" id="logoImageInput" accept="image/*" />
+
+            <div class="size-group">
+                <label for="logoSizeInput">Logo Size:</label>
+                <input type="range" id="logoSizeInput" min="10" max="300" value="100">
+                <span class="value-display" id="logoSizeValue">100</span> px (width)
+            </div>
+
+            <button type="button" id="addLogoBtn">Add Logo</button>
+
+            <div class="button-group">
+                <button type="button" id="undoBtn">Undo</button>
+                <button type="button" id="redoBtn">Redo</button>
+                <button type="button" id="exportBtn">Export PNG</button>
+                <button type="button" id="exportPdfBtn">Export PDF</button>
+                {% if user.is_authenticated %}
+                    <button type="button" id="saveDesignBtn">Save Design</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        const canvas = document.getElementById('tshirtCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // State for Undo/Redo
+        let states = [];
+        let currentState = -1;
+
+        // Objects on canvas: texts and images
+        let objects = [];
+        let selectedObject = null; // To track the currently selected object for manipulation
+
+        // Track dragging
+        let draggingObj = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        // T-shirt base color and image
+        let tshirtColor = document.getElementById('tshirtColor').value;
+        let tshirtImage = new Image();
+        tshirtImage.src = '/static/images/blank_tshirt.png'; // Default image (corrected path)
+
+        // Currently selected pattern type (initialized to 'none')
+        let selectedPattern = 'none';
+
+        // Fabric Costs (example values - adjust as needed)
+        const fabricCosts = {
+            "T-Shirt": {
+                "Cotton": { "Half": 200, "Full": 250 },
+                "Silk": { "Half": 400, "Full": 500 },
+                "Polyester": { "Half": 180, "Full": 220 },
+                "Linen": { "Half": 300, "Full": 380 }
+            },
+            "Hoodie": {
+                "Cotton": { "Full": 600 },
+                "Silk": { "Full": 1000 },
+                "Polyester": { "Full": 550 },
+                "Linen": { "Full": 800 }
+            },
+            "Shirt": {
+                "Cotton": { "Half": 350, "Full": 450 },
+                "Silk": { "Half": 700, "Full": 900 },
+                "Polyester": { "Half": 300, "Full": 400 },
+                "Linen": { "Half": 500, "Full": 650 }
+            }
+        };
+
+        function calculateCost() {
+            const category = document.getElementById("categorySelect").value;
+            const fabric = document.getElementById("fabricSelect").value;
+            const sleeve = document.getElementById("sleeveSelect").value;
+            let cost = 0;
+
+            if (fabricCosts[category] && fabricCosts[category][fabric]) {
+                if (category === "Hoodie") {
+                    // Hoodies typically only have full sleeves, so we directly use the "Full" cost
+                    cost = fabricCosts[category][fabric]["Full"];
+                } else {
+                    cost = fabricCosts[category][fabric][sleeve];
+                }
+            }
+
+            document.getElementById("estimatedCost").textContent = `₹${cost}`; // Display cost in rupees
+        }
+
+        // Function to apply pattern to a given context (tempCtx)
+        function applyPatternToTempCanvas(targetCtx, targetWidth, targetHeight, patternType) {
+            if (patternType === "none") return;
+            targetCtx.save();
+            targetCtx.globalAlpha = 0.3; // Semi-transparent patterns
+            const patternColor = document.getElementById("patternColor").value;
+            const patternScale = parseInt(document.getElementById("dotSize").value); // Renamed for broader use
+            document.getElementById("dotSizeValue").textContent = patternScale; // Update value on UI
+
+            // This is the crucial part: draw patterns only where there's existing content (the outfit image)
+            targetCtx.globalCompositeOperation = "source-atop";
+            targetCtx.fillStyle = patternColor;
+            targetCtx.strokeStyle = patternColor; // Set stroke style for lines
+            targetCtx.lineWidth = 15; // Increased line thickness
+
+            if (patternType === "dots") {
+                const rows = 4;
+                const cols = 4;
+                const spacingX = targetWidth / (cols + 1);
+                const spacingY = targetHeight / (rows + 1);
+                for (let i = 1; i <= cols; i++) {
+                    for (let j = 1; j <= rows; j++) {
+                        targetCtx.beginPath();
+                        targetCtx.arc(i * spacingX, j * spacingY, patternScale, 0, Math.PI * 2);
+                        targetCtx.fill();
+                    }
+                }
+            } else if (patternType === "checkerboard") {
+                const squareSize = patternScale * 2; // Size of each checkerboard square
+                for (let y = 0; y < targetHeight; y += squareSize) {
+                    for (let x = 0; x < targetWidth; x += squareSize) {
+                        // Alternate filling squares
+                        if (((x / squareSize) % 2 === 0 && (y / squareSize) % 2 === 0) ||
+                            ((x / squareSize) % 2 !== 0 && (y / squareSize) % 2 !== 0)) {
+                            targetCtx.fillRect(x, y, squareSize, squareSize);
+                        }
+                    }
+                }
+            } else if (patternType === "diagonal-stripes") {
+                targetCtx.lineWidth = patternScale; // Use patternScale for stripe thickness
+                const lineSpacing = patternScale * 2.5; // Spacing between diagonal lines
+                for (let i = -targetHeight; i < targetWidth + targetHeight; i += lineSpacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(i, 0);
+                    targetCtx.lineTo(i + targetHeight, targetHeight);
+                    targetCtx.stroke();
+                }
+            } else if (patternType === "crosshatch") {
+                targetCtx.lineWidth = patternScale / 2; // Thinner lines for crosshatch
+                const spacing = patternScale * 2; // Spacing for grid
+
+                // Horizontal lines
+                for (let y = spacing; y < targetHeight; y += spacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(0, y);
+                    targetCtx.lineTo(targetWidth, y);
+                    targetCtx.stroke();
+                }
+                // Vertical lines
+                for (let x = spacing; x < targetWidth; x += spacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(x, 0);
+                    targetCtx.lineTo(x, targetHeight);
+                    targetCtx.stroke();
+                }
+            } else if (patternType === "diamonds") {
+                targetCtx.lineWidth = 1;
+                const diamondSize = patternScale * 2.5;
+                const halfDiamond = diamondSize / 2;
+                const spacing = diamondSize * 1.5;
+
+                for (let y = 0; y < targetHeight + diamondSize; y += spacing) {
+                    for (let x = 0; x < targetWidth + diamondSize; x += spacing) {
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x, y - halfDiamond);          // Top
+                        targetCtx.lineTo(x + halfDiamond, y);          // Right
+                        targetCtx.lineTo(x, y + halfDiamond);          // Bottom
+                        targetCtx.lineTo(x - halfDiamond, y);          // Left
+                        targetCtx.closePath();
+                        targetCtx.stroke();
+                    }
+                }
+            } else if (patternType === "floral") {
+                // Simplified floral: A central circle with 5 "petals" (small circles)
+                targetCtx.fillStyle = patternColor;
+                const flowerSize = patternScale * 0.8;
+                const spacing = patternScale * 5;
+
+                for (let y = 0; y < targetHeight + spacing; y += spacing) {
+                    for (let x = 0; x < targetWidth + spacing; x += spacing) {
+                        // Center dot
+                        targetCtx.beginPath();
+                        targetCtx.arc(x, y, flowerSize / 3, 0, Math.PI * 2);
+                        targetCtx.fill();
+
+                        // Petals
+                        for (let i = 0; i < 5; i++) {
+                            const angle = (i * Math.PI * 2) / 5;
+                            const petalX = x + Math.cos(angle) * flowerSize;
+                            const petalY = y + Math.sin(angle) * flowerSize;
+                            targetCtx.beginPath();
+                            targetCtx.arc(petalX, petalY, flowerSize / 2, 0, Math.PI * 2);
+                            targetCtx.fill();
+                        }
+                    }
+                }
+            } else if (patternType === "paisleys") {
+                // Simplified paisley: A tear-drop shape
+                targetCtx.fillStyle = patternColor;
+                const paisleyWidth = patternScale * 1.5;
+                const paisleyHeight = patternScale * 2.5;
+                const spacingX = patternScale * 4;
+                const spacingY = patternScale * 4;
+
+                for (let y = 0; y < targetHeight + spacingY; y += spacingY) {
+                    for (let x = 0; x < targetWidth + spacingX; x += spacingX) {
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x, y - paisleyHeight / 2); // Top point
+                        targetCtx.quadraticCurveTo(
+                            x + paisleyWidth, y - paisleyHeight / 2, // Control point for curve
+                            x + paisleyWidth / 2, y + paisleyHeight / 2 // Bottom right point
+                        );
+                        targetCtx.quadraticCurveTo(
+                            x - paisleyWidth, y + paisleyHeight / 2, // Control point for curve
+                            x, y - paisleyHeight / 2 // Back to top point
+                        );
+                        targetCtx.fill();
+                    }
+                }
+            } else if (patternType === "damask") {
+                // Simplified Damask: Interlocking geometric shapes
+                targetCtx.lineWidth = 1;
+                const motifSize = patternScale * 3;
+                const halfMotif = motifSize / 2;
+                const spacing = patternScale * 6;
+
+                for (let y = 0; y < targetHeight + spacing; y += spacing) {
+                    for (let x = 0; x < targetWidth + spacing; x += spacing) {
+                        // First motif (e.g., stylized 'M')
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x - halfMotif, y + halfMotif);
+                        targetCtx.lineTo(x, y - halfMotif);
+                        targetCtx.lineTo(x + halfMotif, y + halfMotif);
+                        targetCtx.stroke();
+
+                        // Second motif (overlapping or interlacing, e.g., stylized 'W')
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x - halfMotif, y - halfMotif);
+                        targetCtx.lineTo(x, y + halfMotif);
+                        targetCtx.lineTo(x + halfMotif, y - halfMotif);
+                        targetCtx.stroke();
+                    }
+                }
+            } else if (patternType === "scroll") {
+                targetCtx.lineWidth = patternScale / 5;
+                const amplitude = patternScale;
+                const wavelength = patternScale * 4;
+                for (let y = 0; y < targetHeight; y += wavelength / 2) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(0, y);
+                    for (let x = 0; x <= targetWidth; x += 1) {
+                        const wave = amplitude * Math.sin(x / wavelength * 2 * Math.PI);
+                        targetCtx.lineTo(x, y + wave);
+                    }
+                    targetCtx.stroke();
+                }
+            } else if (patternType === "argyle") {
+                targetCtx.lineWidth = patternScale / 4;
+                const diamondSize = patternScale * 3;
+                const smallDiamondOffset = patternScale / 2;
+
+                for (let y = -diamondSize; y < targetHeight + diamondSize; y += diamondSize) {
+                    for (let x = -diamondSize; x < targetWidth + diamondSize; x += diamondSize) {
+                        // Large diamonds
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x + diamondSize / 2, y);
+                        targetCtx.lineTo(x + diamondSize, y + diamondSize / 2);
+                        targetCtx.lineTo(x + diamondSize / 2, y + diamondSize);
+                        targetCtx.lineTo(x, y + diamondSize / 2);
+                        targetCtx.closePath();
+                        targetCtx.stroke();
+
+                        // Offset small diamonds
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x + diamondSize / 2 + smallDiamondOffset, y + smallDiamondOffset);
+                        targetCtx.lineTo(x + diamondSize + smallDiamondOffset, y + diamondSize / 2 + smallDiamondOffset);
+                        targetCtx.lineTo(x + diamondSize / 2 + smallDiamondOffset, y + diamondSize + smallDiamondOffset);
+                        targetCtx.lineTo(x + smallDiamondOffset, y + diamondSize / 2 + smallDiamondOffset);
+                        targetCtx.closePath();
+                        targetCtx.stroke();
+                    }
+                }
+            } else if (patternType === "trellis") {
+                targetCtx.lineWidth = patternScale / 5;
+                const spacing = patternScale * 2;
+
+                // Diagonal lines (one direction)
+                for (let i = -targetHeight; i < targetWidth + targetHeight; i += spacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(i, 0);
+                    targetCtx.lineTo(i + targetHeight, targetHeight);
+                    targetCtx.stroke();
+                }
+                // Diagonal lines (other direction)
+                for (let i = targetWidth + targetHeight; i > -targetHeight; i -= spacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(i, 0);
+                    targetCtx.lineTo(i - targetHeight, targetHeight);
+                    targetCtx.stroke();
+                }
+            } else if (patternType === "ogee") {
+                targetCtx.lineWidth = patternScale / 5;
+                const segmentLength = patternScale * 3;
+                const curveHeight = patternScale * 1.5;
+
+                for (let y = 0; y < targetHeight; y += curveHeight * 2) {
+                    for (let x = 0; x < targetWidth; x += segmentLength) {
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x, y);
+                        targetCtx.bezierCurveTo(x + segmentLength / 2, y + curveHeight,
+                                                x + segmentLength / 2, y + curveHeight,
+                                                x + segmentLength, y);
+                        targetCtx.stroke();
+
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x, y + curveHeight * 2);
+                        targetCtx.bezierCurveTo(x + segmentLength / 2, y + curveHeight,
+                                                x + segmentLength / 2, y + curveHeight,
+                                                x + segmentLength, y + curveHeight * 2);
+                        targetCtx.stroke();
+                    }
+                }
+            } else if (patternType === "chevron") {
+                targetCtx.lineWidth = patternScale / 3;
+                const chevronHeight = patternScale * 2;
+                const chevronWidth = patternScale * 3;
+
+                for (let y = -chevronHeight; y < targetHeight + chevronHeight; y += chevronHeight) {
+                    for (let x = -chevronWidth; x < targetWidth + chevronWidth; x += chevronWidth) {
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x, y + chevronHeight);
+                        targetCtx.lineTo(x + chevronWidth / 2, y);
+                        targetCtx.lineTo(x + chevronWidth, y + chevronHeight);
+                        targetCtx.stroke();
+                    }
+                }
+            } else if (patternType === "aboriginal") {
+                targetCtx.fillStyle = patternColor;
+                const dotSpacing = patternScale; // Controls density
+                const dotRadius = patternScale / 3; // Controls dot size
+
+                for (let y = 0; y < targetHeight; y += dotSpacing) {
+                    for (let x = 0; x < targetWidth; x += dotSpacing) {
+                        // Random offset for organic feel
+                        const offsetX = (Math.random() - 0.5) * dotSpacing * 0.5;
+                        const offsetY = (Math.random() - 0.5) * dotSpacing * 0.5;
+
+                        targetCtx.beginPath();
+                        targetCtx.arc(x + offsetX, y + offsetY, dotRadius, 0, Math.PI * 2);
+                        targetCtx.fill();
+                    }
+                }
+            } else if (patternType === "houndstooth") {
+                targetCtx.lineWidth = 1;
+                const cellSize = patternScale * 4;
+                const halfCell = cellSize / 2;
+
+                for (let y = 0; y < targetHeight; y += cellSize) {
+                    for (let x = 0; x < targetWidth; x += cellSize) {
+                        // Draw a basic "broken check" unit
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x, y);
+                        targetCtx.lineTo(x + halfCell, y);
+                        targetCtx.lineTo(x + cellSize, y + halfCell);
+                        targetCtx.lineTo(x + cellSize, y + cellSize);
+                        targetCtx.lineTo(x + halfCell, y + cellSize);
+                        targetCtx.lineTo(x, y + halfCell);
+                        targetCtx.closePath();
+                        targetCtx.stroke();
+
+                        // Invert for alternating cells
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x + halfCell, y);
+                        targetCtx.lineTo(x + cellSize, y);
+                        targetCtx.lineTo(x + cellSize, y + halfCell);
+                        targetCtx.lineTo(x + halfCell, y + cellSize);
+                        targetCtx.lineTo(x, y + cellSize);
+                        targetCtx.lineTo(x, y + halfCell);
+                        targetCtx.closePath();
+                        targetCtx.stroke();
+                    }
+                }
+            } else if (patternType === "moroccan") {
+                targetCtx.lineWidth = patternScale / 10;
+                const tileWidth = patternScale * 6;
+                const tileHeight = patternScale * 6;
+
+                for (let y = 0; y < targetHeight; y += tileHeight) {
+                    for (let x = 0; x < targetWidth; x += tileWidth) {
+                        // Simplified Moroccan star/cross shape
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x + tileWidth / 2, y); // Top center
+                        targetCtx.lineTo(x + tileWidth, y + tileHeight / 2); // Right center
+                        targetCtx.lineTo(x + tileWidth / 2, y + tileHeight); // Bottom center
+                        targetCtx.lineTo(x, y + tileHeight / 2); // Left center
+                        targetCtx.closePath();
+                        targetCtx.stroke();
+
+                        // Additional lines to create more intricate look
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x, y);
+                        targetCtx.lineTo(x + tileWidth, y + tileHeight);
+                        targetCtx.stroke();
+
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x + tileWidth, y);
+                        targetCtx.lineTo(x, y + tileHeight);
+                        targetCtx.stroke();
+                    }
+                }
+            } else if (patternType === "fleur-de-lis") {
+                targetCtx.fillStyle = patternColor;
+                const size = patternScale * 2;
+                const spacing = patternScale * 6;
+
+                for (let y = 0; y < targetHeight; y += spacing) {
+                    for (let x = 0; x < targetWidth; x += spacing) {
+                        // Simplified Fleur de Lis: three petals
+                        targetCtx.beginPath();
+                        // Left petal
+                        targetCtx.moveTo(x - size * 0.4, y - size * 0.2);
+                        targetCtx.quadraticCurveTo(x - size * 0.8, y - size * 0.8, x - size * 0.2, y - size);
+                        targetCtx.quadraticCurveTo(x, y - size * 0.5, x, y);
+                        // Right petal
+                        targetCtx.moveTo(x + size * 0.4, y - size * 0.2);
+                        targetCtx.quadraticCurveTo(x + size * 0.8, y - size * 0.8, x + size * 0.2, y - size);
+                        targetCtx.quadraticCurveTo(x, y - size * 0.5, x, y);
+                        // Middle petal (stem)
+                        targetCtx.moveTo(x, y);
+                        targetCtx.quadraticCurveTo(x, y + size * 0.5, x, y + size);
+                        targetCtx.fill();
+                    }
+                }
+            } else if (patternType === "quatrefoil") {
+                targetCtx.fillStyle = patternColor;
+                const outerRadius = patternScale * 2;
+                const innerRadius = patternScale;
+                const spacing = patternScale * 5;
+
+                for (let y = 0; y < targetHeight; y += spacing) {
+                    for (let x = 0; x < targetWidth; x += spacing) {
+                        targetCtx.beginPath();
+                        // Top lobe
+                        targetCtx.arc(x, y - innerRadius, outerRadius, Math.PI * 0.75, Math.PI * 0.25, true);
+                        // Right lobe
+                        targetCtx.arc(x + innerRadius, y, outerRadius, Math.PI * 0.25, Math.PI * 1.75, true);
+                        // Bottom lobe
+                        targetCtx.arc(x, y + innerRadius, outerRadius, Math.PI * 1.25, Math.PI * 0.75, true);
+                        // Left lobe
+                        targetCtx.arc(x - innerRadius, y, outerRadius, Math.PI * 1.75, Math.PI * 1.25, true);
+                        targetCtx.closePath();
+                        targetCtx.fill();
+                    }
+                }
+            } else if (patternType === "lattice") {
+                targetCtx.lineWidth = patternScale / 3;
+                const spacing = patternScale * 3;
+
+                // Horizontal lines
+                for (let y = 0; y < targetHeight; y += spacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(0, y);
+                    targetCtx.lineTo(targetWidth, y);
+                    targetCtx.stroke();
+                }
+                // Vertical lines
+                for (let x = 0; x < targetWidth; x += spacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(x, 0);
+                    targetCtx.lineTo(x, targetHeight);
+                    targetCtx.stroke();
+                }
+            } else if (patternType === "waves") {
+                targetCtx.lineWidth = patternScale / 4;
+                const amplitude = patternScale / 2;
+                const wavelength = patternScale * 3;
+                for (let y = 0; y < targetHeight; y += wavelength / 2) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(0, y);
+                    for (let x = 0; x <= targetWidth; x += 1) {
+                        const wave = amplitude * Math.sin(x / wavelength * 2 * Math.PI);
+                        targetCtx.lineTo(x, y + wave);
+                    }
+                    targetCtx.stroke();
+                }
+            } else if (patternType === "bricks") {
+                targetCtx.fillStyle = patternColor;
+                const brickWidth = patternScale * 3;
+                const brickHeight = patternScale * 1.5;
+                const mortarThickness = patternScale / 5;
+
+                for (let y = 0; y < targetHeight; y += (brickHeight + mortarThickness)) {
+                    let offset = (y / (brickHeight + mortarThickness)) % 2 === 0 ? 0 : brickWidth / 2;
+                    for (let x = -brickWidth; x < targetWidth + brickWidth; x += (brickWidth + mortarThickness)) {
+                        targetCtx.fillRect(x + offset, y, brickWidth, brickHeight);
+                    }
+                }
+            } else if (patternType === "honeycomb") {
+                targetCtx.lineWidth = patternScale / 10;
+                const hexRadius = patternScale * 1.5;
+                const hexHeight = hexRadius * Math.sqrt(3);
+                const hexWidth = hexRadius * 2;
+
+                for (let y = 0; y < targetHeight + hexHeight; y += hexHeight * 1.5) {
+                    for (let x = 0; x < targetWidth + hexWidth; x += hexWidth * 0.75) {
+                        let currentX = x;
+                        if (Math.round((y / (hexHeight * 1.5)) % 2) !== 0) {
+                            currentX += hexWidth * 0.75 / 2;
+                        }
+
+                        targetCtx.beginPath();
+                        for (let i = 0; i < 6; i++) {
+                            const angle = (Math.PI / 3) * i;
+                            const x_i = currentX + hexRadius * Math.cos(angle);
+                            const y_i = y + hexRadius * Math.sin(angle);
+                            if (i === 0) {
+                                targetCtx.moveTo(x_i, y_i);
+                            } else {
+                                targetCtx.lineTo(x_i, y_i);
+                            }
+                        }
+                        targetCtx.closePath();
+                        targetCtx.stroke();
+                    }
+                }
+            } else if (patternType === "scales") {
+                targetCtx.fillStyle = patternColor;
+                const scaleRadius = patternScale * 2;
+                const scaleOverlap = patternScale * 0.5;
+                const rowHeight = scaleRadius * 1.5;
+
+                for (let y = 0; y < targetHeight + rowHeight; y += rowHeight) {
+                    for (let x = 0; x < targetWidth + scaleRadius * 2; x += scaleRadius * 2) {
+                        // Alternate row offset
+                        let currentX = x;
+                        if (Math.round((y / rowHeight) % 2) !== 0) {
+                            currentX += scaleRadius;
+                        }
+
+                        targetCtx.beginPath();
+                        targetCtx.arc(currentX, y + scaleRadius - scaleOverlap, scaleRadius, 0, Math.PI, true); // Bottom half of circle
+                        targetCtx.fill();
+                    }
+                }
+            } else if (patternType === "weave") {
+                targetCtx.fillStyle = patternColor;
+                const bandWidth = patternScale * 0.8;
+                const gap = patternScale * 0.4;
+                const totalUnit = bandWidth * 2 + gap;
+
+                for (let y = 0; y < targetHeight; y += totalUnit) {
+                    for (let x = 0; x < targetWidth; x += totalUnit) {
+                        targetCtx.fillRect(x, y, bandWidth, bandWidth); // Square
+                        targetCtx.fillRect(x + bandWidth + gap, y + bandWidth + gap, bandWidth, bandWidth); // Offset square
+                        targetCtx.fillRect(x, y + bandWidth + gap, bandWidth, bandWidth);
+                        targetCtx.fillRect(x + bandWidth + gap, y, bandWidth, bandWidth);
+                    }
+                }
+            } else if (patternType === "concentric-circles") {
+                targetCtx.lineWidth = patternScale / 10;
+                const maxRadius = patternScale * 3;
+                const circleSpacing = patternScale / 2;
+
+                for (let y = 0; y < targetHeight + maxRadius; y += maxRadius * 2) {
+                    for (let x = 0; x < targetWidth + maxRadius; x += maxRadius * 2) {
+                        for (let r = circleSpacing; r <= maxRadius; r += circleSpacing) {
+                            targetCtx.beginPath();
+                            targetCtx.arc(x, y, r, 0, Math.PI * 2);
+                            targetCtx.stroke();
+                        }
+                    }
+                }
+            } else if (patternType === "stripes-vertical") {
+                targetCtx.lineWidth = patternScale; // Stripe width
+                const spacing = patternScale * 2; // Space between stripes
+                for (let x = spacing / 2; x < targetWidth; x += spacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(x, 0);
+                    targetCtx.lineTo(x, targetHeight);
+                    targetCtx.stroke();
+                }
+            } else if (patternType === "stripes-horizontal") {
+                targetCtx.lineWidth = patternScale; // Stripe height
+                const spacing = patternScale * 2; // Space between stripes
+                for (let y = spacing / 2; y < targetHeight; y += spacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(0, y);
+                    targetCtx.lineTo(targetWidth, y);
+                    targetCtx.stroke();
+                }
+            } else if (patternType === "dots-small") {
+                const rows = 10;
+                const cols = 10;
+                const spacingX = targetWidth / (cols + 1);
+                const spacingY = targetHeight / (rows + 1);
+                for (let i = 1; i <= cols; i++) {
+                    for (let j = 1; j <= rows; j++) {
+                        targetCtx.beginPath();
+                        targetCtx.arc(i * spacingX, j * spacingY, patternScale / 2, 0, Math.PI * 2);
+                        targetCtx.fill();
+                    }
+                }
+            } else if (patternType === "grid") {
+                targetCtx.lineWidth = patternScale / 5; // Grid line thickness
+                const spacing = patternScale * 2; // Grid cell size
+
+                // Horizontal lines
+                for (let y = 0; y < targetHeight; y += spacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(0, y);
+                    targetCtx.lineTo(targetWidth, y);
+                    targetCtx.stroke();
+                }
+                // Vertical lines
+                for (let x = 0; x < targetWidth; x += spacing) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(x, 0);
+                    targetCtx.lineTo(x, targetHeight);
+                    targetCtx.stroke();
+                }
+            } else if (patternType === "herringbone") {
+                targetCtx.lineWidth = patternScale / 4;
+                const segmentLength = patternScale * 2.5;
+                const segmentHeight = patternScale * 1;
+                const spacingX = segmentLength * 2;
+                const spacingY = segmentHeight * 2;
+
+                for (let y = -segmentHeight; y < targetHeight + segmentHeight; y += spacingY) {
+                    for (let x = -segmentLength; x < targetWidth + segmentLength; x += spacingX) {
+                        // First set of diagonal lines
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x, y + segmentHeight);
+                        targetCtx.lineTo(x + segmentLength, y);
+                        targetCtx.stroke();
+
+                        // Second set, offset
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x + segmentLength, y + spacingY + segmentHeight);
+                        targetCtx.lineTo(x + segmentLength * 2, y + spacingY);
+                        targetCtx.stroke();
+                    }
+                }
+            } else if (patternType === "basketweave") {
+                targetCtx.fillStyle = patternColor;
+                const unitSize = patternScale * 2; // Size of each block in the weave
+                const halfUnit = unitSize / 2;
+
+                for (let y = 0; y < targetHeight; y += unitSize) {
+                    for (let x = 0; x < targetWidth; x += unitSize) {
+                        // Create the weaving effect
+                        if (((x / unitSize) % 2 === 0 && (y / unitSize) % 2 === 0) ||
+                            ((x / unitSize) % 2 !== 0 && (y / unitSize) % 2 !== 0)) {
+                            targetCtx.fillRect(x, y, unitSize, halfUnit);
+                            targetCtx.fillRect(x, y + halfUnit, halfUnit, halfUnit);
+                            targetCtx.fillRect(x + halfUnit, y + halfUnit, halfUnit, halfUnit);
+                        } else {
+                            targetCtx.fillRect(x, y, halfUnit, halfUnit);
+                            targetCtx.fillRect(x + halfUnit, y, halfUnit, unitSize);
+                            targetCtx.fillRect(x, y + halfUnit, halfUnit, halfUnit);
+                        }
+                    }
+                }
+            } else if (patternType === "zig-zag") {
+                targetCtx.lineWidth = patternScale / 4;
+                const zigZagHeight = patternScale * 2;
+                const zigZagWidth = patternScale * 3;
+
+                for (let y = 0; y < targetHeight + zigZagHeight; y += zigZagHeight * 2) {
+                    for (let x = 0; x < targetWidth + zigZagWidth; x += zigZagWidth) {
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x, y);
+                        targetCtx.lineTo(x + zigZagWidth / 2, y + zigZagHeight);
+                        targetCtx.lineTo(x + zigZagWidth, y);
+                        targetCtx.stroke();
+                    }
+                }
+            } else if (patternType === "polka-large") {
+                const rows = 2;
+                const cols = 2;
+                const spacingX = targetWidth / (cols + 1);
+                const spacingY = targetHeight / (rows + 1);
+                for (let i = 1; i <= cols; i++) {
+                    for (let j = 1; j <= rows; j++) {
+                        targetCtx.beginPath();
+                        targetCtx.arc(i * spacingX, j * spacingY, patternScale * 1.5, 0, Math.PI * 2);
+                        targetCtx.fill();
+                    }
+                }
+            } else if (patternType === "pyramids") {
+                targetCtx.fillStyle = patternColor;
+                const pyramidSize = patternScale * 3;
+                const halfPyramid = pyramidSize / 2;
+
+                for (let y = 0; y < targetHeight + pyramidSize; y += pyramidSize) {
+                    for (let x = 0; x < targetWidth + pyramidSize; x += pyramidSize) {
+                        // Draw a triangle for the pyramid
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(x, y + pyramidSize);          // Bottom-left
+                        targetCtx.lineTo(x + halfPyramid, y);          // Top-center
+                        targetCtx.lineTo(x + pyramidSize, y + pyramidSize);  // Bottom-right
+                        targetCtx.closePath();
+                        targetCtx.fill();
+                    }
+                }
+            }
+            targetCtx.restore(); // Restore context to default (globalCompositeOperation to source-over)
+        }
+
+        // Initialize Canvas
+        function drawCanvas() {
+            // 1. Clear the main canvas and fill with background color
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = tshirtColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Create a temporary canvas for the outfit image and pattern
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // 2. Draw the tshirtImage onto the temporary canvas
+            if (tshirtImage.complete) {
+                let aspectRatio = tshirtImage.width / tshirtImage.height;
+                let h = tempCanvas.height;
+                let w = h * aspectRatio;
+                let x = (tempCanvas.width - w) / 2;
+                tempCtx.drawImage(tshirtImage, x, 0, w, h);
+
+                // 3. Apply pattern to the temporary canvas using source-atop
+                applyPatternToTempCanvas(tempCtx, tempCanvas.width, tempCanvas.height, selectedPattern);
+
+                // 4. Draw the temporary canvas content back to the main canvas
+                ctx.drawImage(tempCanvas, 0, 0);
+
+            } else {
+                // If image not loaded, draw only the pattern on load
+                tshirtImage.onload = () => {
+                    let aspectRatio = tshirtImage.width / tshirtImage.height;
+                    let h = tempCanvas.height;
+                    let w = h * aspectRatio;
+                    let x = (tempCanvas.width - w) / 2;
+                    tempCtx.drawImage(tshirtImage, x, 0, w, h);
+                    applyPatternToTempCanvas(tempCtx, tempCanvas.height, tempCanvas.width, selectedPattern);
+                    drawCanvas(); // Redraw main canvas after temporary canvas is ready
+                };
+                // Return early if image is not loaded, redraw will happen on load
+                return;
+            }
+            
+            // Draw other objects (text, logos) on the main canvas
+            objects.forEach(obj => {
+                if (obj.type === 'text') {
+                    ctx.font = `${obj.fontSize}px ${obj.fontFamily}`;
+                    ctx.fillStyle = obj.color;
+                    ctx.fillText(obj.text, obj.x, obj.y);
+
+                    // Draw bounding box if selected
+                    if (obj === selectedObject) {
+                        const metrics = ctx.measureText(obj.text);
+                        const textWidth = metrics.width;
+                        const textHeight = obj.fontSize; // Approximate height for text
+                        ctx.strokeStyle = '#007bff'; // Highlight color
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(obj.x, obj.y - textHeight, textWidth, textHeight);
+                    }
+                } else if (obj.type === 'image') {
+                    ctx.drawImage(obj.image, obj.x, obj.y, obj.width, obj.height);
+                    // Draw bounding box if selected
+                    if (obj === selectedObject) {
+                        ctx.strokeStyle = '#007bff'; // Highlight color
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+                    }
+                }
+            });
+        }
+
+        function saveState() {
+            currentState++;
+            states = states.slice(0, currentState);
+            // Deep copy objects to avoid reference issues
+            const serializableObjects = objects.map(obj => {
+                if (obj.type === 'image') {
+                    return { 
+                        ...obj, 
+                        image: null, // Don't serialize the Image object directly
+                        src: obj.src, // Store src
+                        width: obj.width, // Store current width
+                        height: obj.height, // Store current height
+                        originalAspectRatio: obj.originalAspectRatio // Store aspect ratio
+                    }; 
+                }
+                return { ...obj };
+            });
+            states.push(JSON.stringify({ 
+                objects: serializableObjects, 
+                tshirtColor: tshirtColor, 
+                tshirtImageSrc: tshirtImage ? tshirtImage.src : null,
+                selectedPattern: selectedPattern // Save selected pattern in state
+            }));
+            console.log("State saved. Total states:", states.length, "Current state:", currentState);
+        }
+
+        function undo() {
+            if (currentState > 0) {
+                currentState--;
+                const state = JSON.parse(states[currentState]);
+                objects = state.objects;
+                tshirtColor = state.tshirtColor;
+                selectedPattern = state.selectedPattern || 'none'; // Restore selected pattern
+                updatePatternSelectionUI(); // Update UI for pattern selection
+
+                if (state.tshirtImageSrc) {
+                    tshirtImage.src = state.tshirtImageSrc;
+                    // Rebuild images, then rebuild objects and draw
+                    rebuildImagesInObjects(() => {
+                        drawCanvas();
+                        console.log("Undo: Reverted to state", currentState);
+                    });
+                } else {
+                    tshirtImage = null; // Clear image if null in state
+                    rebuildImagesInObjects(() => {
+                        drawCanvas();
+                        console.log("Undo: Reverted to state", currentState);
+                    });
+                }
+                // Update sliders based on selected object after undo
+                updateControlSliders();
+            } else {
+                console.log("No more states to undo.");
+            }
+        }
+        
+        function redo() {
+            if (currentState < states.length - 1) {
+                currentState++;
+                const state = JSON.parse(states[currentState]);
+                objects = state.objects;
+                tshirtColor = state.tshirtColor;
+                selectedPattern = state.selectedPattern || 'none'; // Restore selected pattern
+                updatePatternSelectionUI(); // Update UI for pattern selection
+
+                if (state.tshirtImageSrc) {
+                    tshirtImage.src = state.tshirtImageSrc;
+                    // Rebuild images, then rebuild objects and draw
+                    rebuildImagesInObjects(() => {
+                        drawCanvas();
+                        console.log("Redo: Advanced to state", currentState);
+                    });
+                } else {
+                    tshirtImage = null; // Clear image if null in state
+                    rebuildImagesInObjects(() => {
+                        drawCanvas();
+                        console.log("Redo: Advanced to state", currentState);
+                    });
+                }
+                // Update sliders based on selected object after redo
+                updateControlSliders();
+            } else {
+                console.log("No more states to redo.");
+            }
+        }
+
+        function rebuildImagesInObjects(callback) {
+            let pending = 0;
+            // First, re-instantiate the main tshirtImage if its source changed
+            if (tshirtImage && tshirtImage.src && !tshirtImage.complete) {
+                pending++;
+                tshirtImage.onload = () => {
+                    pending--;
+                    if (pending === 0) callback();
+                };
+                // If it's already complete, this won't trigger onload, so we decrement if needed
+                if(tshirtImage.complete) pending--;
+            }
+
+            // Then, rebuild images within the objects array
+            objects.forEach((obj, index) => {
+                if (obj.type === 'image' && obj.src) { // Ensure it's an image and has a source
+                    pending++;
+                    let img = new Image();
+                    img.onload = function() {
+                        objects[index].image = img;
+                        // Restore original width/height if they were saved (important for redo)
+                        if (objects[index].width === undefined || objects[index].height === undefined) {
+                            objects[index].width = img.width;
+                            objects[index].height = img.height;
+                            objects[index].originalAspectRatio = img.width / img.height;
+                        }
+                        pending--;
+                        if (pending === 0) callback();
+                    };
+                    img.onerror = function() {
+                        console.error("Failed to load image for object:", obj.src);
+                        pending--;
+                        if (pending === 0) callback();
+                    };
+                    img.src = obj.src;
+                }
+            });
+            if (pending === 0) callback(); // If no images to load, execute callback immediately
+        }
+
+        // New function to update font/logo size sliders based on selected object
+        function updateControlSliders() {
+            const fontSizeInput = document.getElementById('fontSizeInput');
+            const fontSizeValueSpan = document.getElementById('fontSizeValue');
+            const logoSizeInput = document.getElementById('logoSizeInput');
+            const logoSizeValueSpan = document.getElementById('logoSizeValue');
+
+            if (selectedObject && selectedObject.type === 'text') {
+                fontSizeInput.value = selectedObject.fontSize;
+                fontSizeValueSpan.textContent = selectedObject.fontSize;
+                fontSizeInput.disabled = false;
+
+                logoSizeInput.value = 100; // Reset to default for logos
+                logoSizeValueSpan.textContent = 100;
+                logoSizeInput.disabled = true;
+            } else if (selectedObject && selectedObject.type === 'image') {
+                logoSizeInput.value = selectedObject.width; // Set slider to current logo width
+                logoSizeValueSpan.textContent = selectedObject.width;
+                logoSizeInput.disabled = false;
+
+                fontSizeInput.value = 40; // Reset to default for text
+                fontSizeValueSpan.textContent = 40;
+                fontSizeInput.disabled = true;
+            } else {
+                // Disable and reset if no object is selected
+                fontSizeInput.value = 40;
+                fontSizeValueSpan.textContent = 40;
+                fontSizeInput.disabled = true;
+
+                logoSizeInput.value = 100;
+                logoSizeValueSpan.textContent = 100;
+                logoSizeInput.disabled = true;
+            }
+        }
+
+        // New function to handle object selection
+        function selectObject(mouseX, mouseY) {
+            let newSelectedObject = null;
+            for (let i = objects.length - 1; i >= 0; i--) { // Iterate backwards to select topmost object
+                const obj = objects[i];
+                if (obj.type === 'text') {
+                    ctx.font = `${obj.fontSize}px ${obj.fontFamily}`;
+                    const width = ctx.measureText(obj.text).width;
+                    const height = obj.fontSize; // Approximate height for text
+                    if (
+                        mouseX >= obj.x && mouseX <= obj.x + width &&
+                        mouseY <= obj.y && mouseY >= obj.y - height
+                    ) {
+                        newSelectedObject = obj;
+                        break;
+                    }
+                } else if (obj.type === 'image') {
+                    if (
+                        mouseX >= obj.x && mouseX <= obj.x + obj.width &&
+                        mouseY >= obj.y && mouseY <= obj.y + obj.height
+                    ) {
+                        newSelectedObject = obj;
+                        break;
+                    }
+                }
+            }
+            if (selectedObject !== newSelectedObject) {
+                selectedObject = newSelectedObject;
+                updateControlSliders(); // Update sliders based on selection
+                drawCanvas(); // Redraw to show/hide selection box
+            }
+        }
+
+        document.getElementById('addTextBtn').addEventListener('click', () => {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) return alert('Please enter text');
+
+            const color = document.getElementById('textColor').value;
+            const fontFamily = document.getElementById('fontSelect').value;
+            const fontSize = parseInt(document.getElementById('fontSizeInput').value); // Use current slider value
+
+            const newTextObject = {
+                type: 'text',
+                text: text,
+                color: color,
+                fontFamily: fontFamily,
+                fontSize: fontSize,
+                x: 50,
+                y: 100,
+            };
+            objects.push(newTextObject);
+            selectedObject = newTextObject; // Select the newly added text
+            updateControlSliders(); // Update sliders
+            saveState();
+            drawCanvas();
+        });
+
+        document.getElementById('tshirtImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    tshirtImage = img;
+                    drawCanvas();
+                    saveState();
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('tshirtColor').addEventListener('change', (e) => {
+            tshirtColor = e.target.value;
+            drawCanvas();
+            saveState();
+        });
+
+        document.getElementById('addLogoBtn').addEventListener('click', () => {
+            const input = document.getElementById('logoImageInput');
+            if (!input.files[0]) return alert('Please select an image to upload');
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const originalWidth = img.width;
+                    const originalHeight = img.height;
+                    const originalAspectRatio = originalWidth / originalHeight;
+                    const initialWidth = 100; // Initial display size
+                    const initialHeight = initialWidth / originalAspectRatio;
+
+                    const newImageObject = {
+                        type: 'image',
+                        src: event.target.result, // Store source for saving state
+                        image: img,
+                        x: 50,
+                        y: 150,
+                        width: initialWidth,
+                        height: initialHeight,
+                        originalAspectRatio: originalAspectRatio // Store for proportional resizing
+                    };
+                    objects.push(newImageObject);
+                    selectedObject = newImageObject; // Select the newly added image
+                    updateControlSliders(); // Update sliders
+                    saveState();
+                    drawCanvas();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        });
+
+        // Event listener for font size
+        document.getElementById('fontSizeInput').addEventListener('input', (e) => {
+            const fontSize = e.target.value;
+            document.getElementById('fontSizeValue').textContent = fontSize;
+            if (selectedObject && selectedObject.type === 'text') {
+                selectedObject.fontSize = parseInt(fontSize);
+                drawCanvas();
+            }
+        });
+        document.getElementById('fontSizeInput').addEventListener('change', saveState); // Save state when slider is released
+
+        // Event listener for logo size
+        document.getElementById('logoSizeInput').addEventListener('input', (e) => {
+            const newWidth = parseInt(e.target.value);
+            document.getElementById('logoSizeValue').textContent = newWidth;
+            if (selectedObject && selectedObject.type === 'image') {
+                selectedObject.width = newWidth;
+                // Maintain aspect ratio
+                selectedObject.height = newWidth / selectedObject.originalAspectRatio;
+                drawCanvas();
+            }
+        });
+        document.getElementById('logoSizeInput').addEventListener('change', saveState); // Save state when slider is released
+
+
+        canvas.addEventListener('mousedown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            selectObject(mouseX, mouseY); // Try to select an object first
+
+            if (selectedObject) {
+                // If an object is selected, start dragging it
+                draggingObj = selectedObject;
+                // Calculate offsets based on the selected object's type
+                if (draggingObj.type === 'text') {
+                    // For text, adjust offset as y is typically the baseline
+                    ctx.font = `${draggingObj.fontSize}px ${draggingObj.fontFamily}`;
+                    const metrics = ctx.measureText(draggingObj.text); // Approximation, as actual text bounding box is complex
+                    dragOffsetX = mouseX - draggingObj.x;
+                    dragOffsetY = mouseY - draggingObj.y;
+                } else if (draggingObj.type === 'image') {
+                    dragOffsetX = mouseX - draggingObj.x;
+                    dragOffsetY = mouseY - draggingObj.y;
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (!draggingObj) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            draggingObj.x = mouseX - dragOffsetX;
+            draggingObj.y = mouseY - dragOffsetY;
+            drawCanvas();
+        });
+
+        canvas.addEventListener('mouseup', e => {
+            if (draggingObj) {
+                saveState();
+                draggingObj = null;
+            }
+        });
+
+        canvas.addEventListener('mouseleave', e => {
+            if (draggingObj) {
+                saveState();
+                draggingObj = null;
+            }
+        });
+
+        document.getElementById('undoBtn').addEventListener('click', undo);
+        document.getElementById('redoBtn').addEventListener('click', redo);
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            // Temporarily hide selection box for export
+            const currentSelectedObject = selectedObject;
+            selectedObject = null;
+            drawCanvas(); // Redraw without selection box
+
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = 'custom_outfit.png';
+            link.click();
+
+            // Restore selection box
+            selectedObject = currentSelectedObject;
+            drawCanvas();
+        });
+
+        document.getElementById('exportPdfBtn').addEventListener('click', () => {
+            // Temporarily hide selection box for export
+            const currentSelectedObject = selectedObject;
+            selectedObject = null;
+            drawCanvas(); // Redraw without selection box
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: [canvas.width, canvas.height]
+            });
+
+            const dataURL = canvas.toDataURL('image/png');
+            pdf.addImage(dataURL, 'PNG', 0, 0, canvas.width, canvas.height);
+            pdf.save('custom_outfit.pdf');
+
+            // Restore selection box
+            selectedObject = currentSelectedObject;
+            drawCanvas();
+        });
+
+        {% if user.is_authenticated %}
+        document.getElementById('saveDesignBtn').addEventListener('click', () => {
+            // Temporarily hide selection box for saving
+            const currentSelectedObject = selectedObject;
+            selectedObject = null;
+            drawCanvas(); // Redraw without selection box
+
+            const dataURL = canvas.toDataURL('image/png');
+
+            fetch("{% url 'save_design' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({ image_data: dataURL })
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Design saved successfully!');
+                } else {
+                    alert('Error saving design.');
+                }
+            })
+            .catch(error => {
+                alert('Network error saving design.');
+            })
+            .finally(() => {
+                // Restore selection box whether success or error
+                selectedObject = currentSelectedObject;
+                drawCanvas();
+            });
+        });
+        {% endif %}
+
+        function loadOutfit() {
+            const category = document.getElementById("categorySelect").value.toLowerCase();
+            const color = document.getElementById("colorInput").value.substring(1); // Get hex value without '#'
+            const sleeve = document.getElementById("sleeveSelect").value.toLowerCase();
+            const filename = `${category}_${color}_${sleeve}.png`;
+            const imgPath = `/static/preset_outfits/${filename}`; // Construct the full path
+
+            console.log("Attempting to load outfit image:", imgPath); // Added for debugging
+
+            const img = new Image();
+            img.onload = function () {
+                tshirtImage = img;
+                objects = []; // Clear other objects when loading a new preset
+                selectedObject = null; // Deselect any object
+                updateControlSliders(); // Reset sliders
+
+                drawCanvas();
+                saveState();
+            };
+            img.onerror = function() {
+                // Fallback if the specific image doesn't exist
+                console.warn(`Outfit image not found: ${imgPath}. Using blank T-shirt.`);
+                tshirtImage.src = '/static/images/blank_tshirt.png'; // Corrected static path
+                objects = []; // Clear other objects
+                selectedObject = null;
+                updateControlSliders(); // Reset sliders
+                drawCanvas();
+                saveState();
+            };
+            img.src = imgPath;
+        }
+
+        document.getElementById("loadPresetBtn").addEventListener("click", loadOutfit);
+
+        // New: Event listener for pattern selection grid
+        document.getElementById('patternSelectionGrid').addEventListener('click', (e) => {
+            const thumbnail = e.target.closest('.pattern-thumbnail');
+            if (thumbnail) {
+                // Remove 'selected' class from all thumbnails
+                document.querySelectorAll('.pattern-thumbnail').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                // Add 'selected' class to the clicked thumbnail
+                thumbnail.classList.add('selected');
+                
+                selectedPattern = thumbnail.dataset.pattern; // Update the global selected pattern
+                drawCanvas();
+                saveState();
+            }
+        });
+
+        // Function to update the UI for pattern selection (e.g., after undo/redo)
+        function updatePatternSelectionUI() {
+            document.querySelectorAll('.pattern-thumbnail').forEach(item => {
+                if (item.dataset.pattern === selectedPattern) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        document.getElementById("patternColor").addEventListener("input", drawCanvas);
+        document.getElementById("dotSize").addEventListener("input", drawCanvas);
+        document.getElementById("dotSize").addEventListener("change", saveState); // Save state when dot size changes
+
+        // Event listeners for cost calculation
+        document.getElementById("categorySelect").addEventListener("change", () => {
+            const category = document.getElementById("categorySelect").value;
+            const sleeveSelect = document.getElementById("sleeveSelect");
+            const sleeveLabel = sleeveSelect.previousElementSibling; // Assuming label is the immediate previous sibling
+
+            if (category === "Hoodie") {
+                sleeveSelect.value = "Full"; // Set to Full for Hoodies
+                sleeveSelect.style.display = 'none'; // Hide the dropdown
+                sleeveLabel.style.display = 'none'; // Hide the label
+            } else {
+                sleeveSelect.style.display = ''; // Show the dropdown
+                sleeveLabel.style.display = ''; // Show the label
+            }
+            calculateCost();
+            loadOutfit(); // Load new outfit based on category change (updated function name)
+        });
+        document.getElementById("colorInput").addEventListener("change", loadOutfit); // Load new outfit based on color change (updated ID and function name)
+        document.getElementById("sleeveSelect").addEventListener("change", loadOutfit); // Load new outfit based on sleeve change (updated function name)
+        document.getElementById("fabricSelect").addEventListener("change", calculateCost);
+
+        // Initialize with empty canvas state and calculate initial cost
+        saveState();
+        drawCanvas();
+        calculateCost(); // Calculate initial cost on page load
+        updateControlSliders(); // Disable sliders initially
+        updatePatternSelectionUI(); // Set initial selection for pattern 'none'
+    </script>
+</body>
+</html>

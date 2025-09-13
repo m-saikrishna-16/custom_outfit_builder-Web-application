@@ -1,0 +1,216 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AJIO - Products</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #fafafa;
+      margin: 0;
+      color: #333;
+    }
+
+    .header {
+      background-color: #fff;
+      padding: 25px 20px;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+      color: #ff3f6c;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+      letter-spacing: 1.5px;
+    }
+
+    .products-container {
+      max-width: 1200px;
+      margin: 30px auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+      padding: 0 15px 40px;
+    }
+
+    .product-card {
+      background-color: #fff;
+      padding: 20px 18px;
+      border-radius: 15px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: default;
+    }
+
+    .product-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 25px rgba(255, 63, 108, 0.3);
+    }
+
+    .product-card img {
+      width: 100%;
+      border-radius: 12px;
+      height: 200px;
+      object-fit: contain;  /* Change from cover to contain */
+      margin-bottom: 14px;
+      transition: transform 0.3s ease;
+    }
+
+    .product-card:hover img {
+      transform: none;  /* Remove scale on hover */
+    }
+
+
+    .product-title {
+      font-size: 18px;
+      margin: 12px 0 6px;
+      font-weight: 600;
+      color: #222;
+      min-height: 48px;
+    }
+
+    .price {
+      color: #28a745;
+      font-weight: 700;
+      font-size: 17px;
+      margin-bottom: 12px;
+    }
+
+    .quantity {
+      margin-bottom: 14px;
+      font-size: 14px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .quantity input {
+      width: 60px;
+      padding: 6px 10px;
+      text-align: center;
+      border-radius: 6px;
+      border: 1.8px solid #ddd;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+    }
+
+    .quantity input:focus {
+      border-color: #ff3f6c;
+      outline: none;
+    }
+
+    .add-to-cart {
+      margin-top: 8px;
+      padding: 12px 22px;
+      background-color: #ff3f6c;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+      transition: background-color 0.3s ease, box-shadow 0.2s ease;
+      box-shadow: 0 3px 8px rgba(255, 63, 108, 0.6);
+    }
+
+    .home-link {
+      position: fixed;
+      top: 25px;
+      left: 25px;
+      background: #333;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      z-index: 100;
+    }
+
+    .home-link:hover {
+      background-color: #555;
+      transform: scale(1.05);
+    }
+
+
+    .add-to-cart:hover {
+      background-color: #e6345d;
+      box-shadow: 0 5px 15px rgba(230, 52, 93, 0.7);
+    }
+
+    .cart-link {
+      position: fixed;
+      top: 25px;
+      right: 25px;
+      background: #ff3f6c;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(255, 63, 108, 0.7);
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      z-index: 100;
+    }
+
+    .cart-link:hover {
+      background-color: #e6345d;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">Torendo</div>
+  <a class="home-link" href="/">🏠 Home</a>
+  <a class="cart-link" href="cart/">Go to Cart 🛒</a>
+  <div class="products-container" id="product-list"></div>
+
+  <script>
+    fetch("/get-products/")
+      .then(response => response.json())
+      .then(products => {
+        const container = document.getElementById("product-list");
+
+        products.forEach(product => {
+          const card = document.createElement("div");
+          card.className = "product-card";
+
+          card.innerHTML = `
+            <img src="${product.image}" alt="${product.title}">
+            <div class="product-title">${product.title}</div>
+            <div class="price">₹${product.price}</div>
+            <div class="quantity">
+              Qty: <input type="number" min="1" value="1" id="qty-${product.id}">
+            </div>
+            <button class="add-to-cart" onclick="addToCart(${product.id})">Add to Cart</button>
+          `;
+          container.appendChild(card);
+        });
+
+        window.products = products;  // Save globally for cart
+      });
+
+    function addToCart(id) {
+      const product = window.products.find(p => p.id === id);
+      const qty = parseInt(document.getElementById(`qty-${id}`).value);
+
+      let cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const index = cart.findIndex(item => item.id === id);
+
+      if (index > -1) {
+        cart[index].quantity += qty;
+      } else {
+        cart.push({ ...product, quantity: qty });
+      }
+
+      localStorage.setItem("cart", JSON.stringify(cart));
+      alert("Added to cart!");
+    }
+  </script>
+</body>
+</html>

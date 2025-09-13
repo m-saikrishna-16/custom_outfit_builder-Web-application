@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Fashion Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            padding: 30px;
+        }
+        .chat-box {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .message {
+            display: flex;
+            margin: 15px 0;
+            align-items: flex-start;
+        }
+        .user, .bot {
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        .user {
+            background: #d1e7dd;
+            margin-left: auto;
+            text-align: left;
+        }
+        .bot {
+            background: #f8d7da;
+            margin-right: auto;
+            text-align: left;
+        }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 10px;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            background: #0d6efd;
+            color: white;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-box">
+        <h2>🤖 AI Fashion Recommender</h2>
+        <div id="chat">
+            {% for msg in messages %}
+                <div class="message">
+                    {% if msg.role == 'user' %}
+                        <div class="user">{{ msg.content }}</div>
+                        <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="avatar" alt="User">
+                    {% else %}
+                        <img src="https://cdn-icons-png.flaticon.com/512/4712/4712027.png" class="avatar" alt="Bot">
+                        <div class="bot">{{ msg.content|linebreaksbr }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="Ask me anything about Fashion Wear...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        function formatBotReply(text) {
+            // Break the reply into point-wise bullet format
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            const formatted = lines.map(line => `<li>${line}</li>`).join('');
+            return `<ul>${formatted}</ul>`;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value;
+            if (!text) return;
+
+            const chatDiv = document.getElementById('chat');
+            chatDiv.innerHTML += `
+                <div class="message">
+                    <div class="user">${text}</div>
+                    <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="avatar" alt="User">
+                </div>
+            `;
+            input.value = '';
+
+            fetch("/api/chat/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: text })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const botReply = formatBotReply(data.reply);
+                chatDiv.innerHTML += `
+                    <div class="message">
+                        <img src="https://cdn-icons-png.flaticon.com/512/4712/4712027.png" class="avatar" alt="Bot">
+                        <div class="bot">${botReply}</div>
+                    </div>
+                `;
+                chatDiv.scrollTop = chatDiv.scrollHeight;
+            });
+        }
+    </script>
+</body>
+</html>

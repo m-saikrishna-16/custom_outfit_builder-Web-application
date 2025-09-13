@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signin</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/signin.css' %}">
+</head>
+<body>
+    
+    <form action="{% url 'signin' %}" method="POST">
+        <h3>Signin</h3>
+
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% csrf_token %}
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="Enter your username" required>
+
+        <label for="pass1">Password</label>
+        <input type="password" id="pass1" name="pass1" placeholder="Enter password" required>
+
+        <button type="submit">Sign In</button>
+    </form>
+</body>
+</html>

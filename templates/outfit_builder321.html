@@ -1,0 +1,796 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Custom Outfit Builder</title>
+    <link rel="stylesheet" href="{% static 'css/style1.css' %}">
+    <style>
+        /* Additional styling for canvas and controls */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: url('https://wallpaperaccess.com/full/1448056.jpg') no-repeat center center fixed;
+            background-size: cover;
+        }
+        /* Overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(251, 247, 247, 0.5);
+            z-index: -1; /* behind content */
+        }
+        #canvas-container {
+            position: relative;
+            border: 1px solid #ccc;
+            width: 500px;
+            height: 600px;
+            margin: 20px auto; /* Center the canvas container */
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden; /* Ensures content stays within rounded corners */
+        }
+        #tshirtCanvas {
+            width: 100%;
+            height: 100%;
+            background-color: #ddd;
+            cursor: move;
+        }
+        .center-heading {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #222;
+            margin: 1rem 0;
+        }
+        .welcome-message {
+            display: block;
+            text-align: center;
+            font-size: 1rem;
+            color: #444;
+            margin-top: 0.5rem;
+        }
+        .header {
+            background-color: #fff;
+            padding: 25px 20px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: #ff3f6c;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+            letter-spacing: 1.5px;
+        }
+        .home-link {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            background: #333;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            z-index: 100;
+        }
+        .home-link:hover {
+            background-color: #555;
+            transform: scale(1.05);
+        }
+        .other-link {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            background: #333;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            z-index: 100;
+        }
+        .other-link:hover {
+            background-color: #555;
+            transform: scale(1.05);
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* --- Controls Styling --- */
+        .controls {
+            margin: 20px auto;
+            width: 80%; /* Adjust width as needed */
+            max-width: 900px; /* Max width for larger screens */
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; /* Spacing between items */
+            align-items: center; /* Align items vertically */
+            justify-content: center; /* Center items horizontally */
+        }
+
+        .controls label {
+            font-weight: 600;
+            color: #333;
+            margin-right: 5px;
+        }
+
+        .controls select,
+        .controls input[type="color"],
+        .controls input[type="text"],
+        .controls input[type="range"],
+        .controls input[type="file"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            flex-grow: 1; /* Allows inputs to grow */
+            max-width: 180px; /* Max width for individual inputs */
+        }
+
+        .controls input[type="color"] {
+            padding: 5px; /* Adjust padding for color input */
+            width: 40px; /* Fixed width for color input */
+            height: 35px;
+        }
+
+        .controls button {
+            background-color: #ff3f6c;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-left: 10px; /* Space from other controls */
+        }
+
+        .controls button:hover {
+            background-color: #e0305a;
+            transform: translateY(-2px);
+        }
+
+        #dotSizeValue {
+            font-weight: 500;
+            color: #555;
+            margin-left: 5px;
+        }
+
+        #estimatedCost {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 1.1rem;
+            margin-left: 10px;
+        }
+
+        .controls p {
+            width: 100%; /* Make the cost span full width */
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #eee; /* Separator line */
+        }
+
+        /* Adjustments for the form below canvas */
+        #controlsForm {
+            margin: 20px auto;
+            width: 80%;
+            max-width: 900px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column; /* Stack elements vertically */
+            gap: 15px; /* Spacing between form elements */
+            align-items: flex-start; /* Align labels/inputs to the left */
+        }
+
+        #controlsForm label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            display: block; /* Make labels take full width for better stacking */
+        }
+
+        #controlsForm input[type="file"],
+        #controlsForm input[type="text"],
+        #controlsForm input[type="color"],
+        #controlsForm select {
+            width: calc(100% - 24px); /* Full width minus padding */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        #controlsForm button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-right: 10px; /* Space between buttons */
+            margin-top: 5px; /* Space from previous input */
+        }
+
+        #controlsForm button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <a class="home-link" href="/"> 🏠 Home</a> 
+        <h1 class="center-heading">Torendo Custom Outfit Builder</h1>
+        {% if user.is_authenticated %}
+            <span class="welcome-message">Welcome, {{ user.username }}</span>
+            <a class="other-link" href="{% url 'my_designs' %}" style="margin-right: 10px;">My Designs</a>
+        {% else %}
+            <a class="other-link" href="{% url 'signin' %}">Login</a> to save your designs
+        {% endif %}
+    </header>
+
+    <div class="controls">
+        <label for="categorySelect">Category:</label>
+        <select id="categorySelect">
+            <option value="T-Shirt">T-Shirt</option>
+            <option value="Hoodie">Hoodie</option>
+            <option value="Shirt">Shirt</option>
+        </select>
+        <label for="colorSelect">Color:</label>
+        <select id="colorSelect">
+            <option value="Black">Black</option>
+            <option value="White">White</option>
+            <option value="Blue">Blue</option>
+            <option value="Red">Red</option>
+            <option value="Green">Green</option>
+        </select>
+        <label for="sleeveSelect">Sleeve:</label>
+        <select id="sleeveSelect">
+            <option value="Half">Half</option>
+            <option value="Full">Full</option>
+        </select>
+        <label for="fabricSelect">Fabric Type:</label>
+        <select id="fabricSelect">
+            <option value="Cotton">Cotton</option>
+            <option value="Silk">Silk</option>
+            <option value="Polyester">Polyester</option>
+            <option value="Linen">Linen</option>
+        </select>
+        <label for="patternSelect">Pattern:</label>
+        <select id="patternSelect">
+            <option value="none">None</option>
+            <option value="dots">Dots</option>
+            <option value="horizontal-lines">Horizontal Lines</option>
+            <option value="vertical-lines">Vertical Lines</option>
+        </select>
+        <label for="patternColor">Pattern Color:</label>
+        <input type="color" id="patternColor" value="#000000">
+        <label for="dotSize">Dot Size:</label>
+        <input type="range" id="dotSize" min="5" max="50" value="20">
+        <span id="dotSizeValue">20</span> px
+        <button type="button" id="loadPresetBtn">Load Outfit</button>
+        <p>Estimated Cost: <span id="estimatedCost">0</span></p>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="tshirtCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <form id="controlsForm">
+        <label for="tshirtImageInput">Upload T-shirt Image (PNG/JPG):</label>
+        <input type="file" id="tshirtImageInput" accept="image/*" />
+        <label for="tshirtColor">T-shirt Base Color:</label>
+        <input type="color" id="tshirtColor" value="#ffffff" />
+        <label for="textInput">Add Text:</label>
+        <input type="text" id="textInput" placeholder="Type text here" />
+        <label for="textColor">Text Color:</label>
+        <input type="color" id="textColor" value="#000000" />
+        <label for="fontSelect">Font Style:</label>
+        <select id="fontSelect">
+            <option value="Arial" selected>Arial</option>
+            <option value="Comic Sans MS">Comic Sans MS</option>
+            <option value="Courier New">Courier New</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Verdana">Verdana</option>
+            <option value="Trebuchet MS">Trebuchet MS</option>
+            <option value="Impact">Impact</option>
+            <option value="Lucida Console">Lucida Console</option>
+            <option value="Tahoma">Tahoma</option>
+            <option value="Palatino Linotype">Palatino Linotype</option>
+            <option value="Garamond">Garamond</option>
+            <option value="Bookman">Bookman</option>
+            <option value="Arial Black">Arial Black</option>
+            <option value="Brush Script MT">Brush Script MT</option>
+            <option value="Century Gothic">Century Gothic</option>
+            <option value="Copperplate">Copperplate</option>
+            <option value="Candara">Candara</option>
+            <option value="Consolas">Consolas</option>
+            <option value="Franklin Gothic Medium">Franklin Gothic Medium</option>
+        </select>
+        <button type="button" id="addTextBtn">Add Text</button>
+        <label for="logoImageInput">Upload Logo/Image to Overlay:</label>
+        <input type="file" id="logoImageInput" accept="image/*" />
+        <button type="button" id="addLogoBtn">Add Logo</button>
+        <div>
+            <button type="button" id="undoBtn">Undo</button>
+            <button type="button" id="redoBtn">Redo</button>
+            <button type="button" id="exportBtn">Export PNG</button>
+            <button type="button" id="exportPdfBtn">Export PDF</button>
+            {% if user.is_authenticated %}
+                <button type="button" id="saveDesignBtn">Save Design</button>
+            {% endif %}
+        </div>
+    </form>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        const canvas = document.getElementById('tshirtCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // State for Undo/Redo
+        let states = [];
+        let currentState = -1;
+
+        // Objects on canvas: texts and images
+        let objects = [];
+
+        // Track dragging
+        let draggingObj = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        // T-shirt base color and image
+        let tshirtColor = document.getElementById('tshirtColor').value;
+        let tshirtImage = new Image();
+        tshirtImage.src = '{% static "images/blank_tshirt.png" %}'; // Default image
+
+        // Fabric Costs (example values - adjust as needed)
+        const fabricCosts = {
+            "T-Shirt": {
+                "Cotton": { "Half": 200, "Full": 250 },
+                "Silk": { "Half": 400, "Full": 500 },
+                "Polyester": { "Half": 180, "Full": 220 },
+                "Linen": { "Half": 300, "Full": 380 }
+            },
+            "Hoodie": {
+                "Cotton": { "Full": 600 },
+                "Silk": { "Full": 1000 },
+                "Polyester": { "Full": 550 },
+                "Linen": { "Full": 800 }
+            },
+            "Shirt": {
+                "Cotton": { "Half": 350, "Full": 450 },
+                "Silk": { "Half": 700, "Full": 900 },
+                "Polyester": { "Half": 300, "Full": 400 },
+                "Linen": { "Half": 500, "Full": 650 }
+            }
+        };
+
+        function calculateCost() {
+            const category = document.getElementById("categorySelect").value;
+            const fabric = document.getElementById("fabricSelect").value;
+            const sleeve = document.getElementById("sleeveSelect").value;
+            let cost = 0;
+
+            if (fabricCosts[category] && fabricCosts[category][fabric]) {
+                if (category === "Hoodie") {
+                    // Hoodies typically only have full sleeves, so we directly use the "Full" cost
+                    cost = fabricCosts[category][fabric]["Full"];
+                } else {
+                    cost = fabricCosts[category][fabric][sleeve];
+                }
+            }
+
+            document.getElementById("estimatedCost").textContent = `₹${cost}`; // Display cost in rupees
+        }
+
+
+        // Function to apply pattern to a given context (tempCtx)
+        function applyPatternToTempCanvas(targetCtx, targetWidth, targetHeight, patternType) {
+            if (patternType === "none") return;
+            targetCtx.save();
+            targetCtx.globalAlpha = 0.3; // Semi-transparent patterns
+            const patternColor = document.getElementById("patternColor").value;
+            const dotSize = parseInt(document.getElementById("dotSize").value);
+            document.getElementById("dotSizeValue").textContent = dotSize; // Update value on UI
+
+            // This is the crucial part: draw patterns only where there's existing content (the outfit image)
+            targetCtx.globalCompositeOperation = "source-atop";
+            targetCtx.fillStyle = patternColor;
+            targetCtx.lineWidth = 15; // Increased line thickness
+
+            if (patternType === "dots") {
+                const rows = 4;
+                const cols = 4;
+                const spacingX = targetWidth / (cols + 1);
+                const spacingY = targetHeight / (rows + 1);
+                for (let i = 1; i <= cols; i++) {
+                    for (let j = 1; j <= rows; j++) {
+                        targetCtx.beginPath();
+                        targetCtx.arc(i * spacingX, j * spacingY, dotSize, 0, Math.PI * 2);
+                        targetCtx.fill();
+                    }
+                }
+            } else if (patternType === "horizontal-lines") {
+                targetCtx.strokeStyle = patternColor;
+                targetCtx.lineWidth = 15;
+                for (let y = dotSize * 3; y < targetHeight; y += dotSize * 3) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(0, y);
+                    targetCtx.lineTo(targetWidth, y);
+                    targetCtx.stroke();
+                }
+            } else if (patternType === "vertical-lines") {
+                targetCtx.strokeStyle = patternColor;
+                targetCtx.lineWidth = 15;
+                for (let x = dotSize * 3; x < targetWidth; x += dotSize * 3) {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(x, 0);
+                    targetCtx.lineTo(x, targetHeight);
+                    targetCtx.stroke();
+                }
+            }
+            targetCtx.restore(); // Restore context to default (globalCompositeOperation to source-over)
+        }
+
+
+        // Initialize Canvas
+        function drawCanvas() {
+            // 1. Clear the main canvas and fill with background color
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = tshirtColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Create a temporary canvas for the outfit image and pattern
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // 2. Draw the tshirtImage onto the temporary canvas
+            if (tshirtImage.complete) {
+                let aspectRatio = tshirtImage.width / tshirtImage.height;
+                let h = tempCanvas.height;
+                let w = h * aspectRatio;
+                let x = (tempCanvas.width - w) / 2;
+                tempCtx.drawImage(tshirtImage, x, 0, w, h);
+
+                // 3. Apply pattern to the temporary canvas using source-atop
+                applyPatternToTempCanvas(tempCtx, tempCanvas.width, tempCanvas.height, document.getElementById("patternSelect").value);
+
+                // 4. Draw the temporary canvas content back to the main canvas
+                ctx.drawImage(tempCanvas, 0, 0);
+
+            } else {
+                // If image not loaded, draw only the pattern on load
+                tshirtImage.onload = () => {
+                    let aspectRatio = tshirtImage.width / tshirtImage.height;
+                    let h = tempCanvas.height;
+                    let w = h * aspectRatio;
+                    let x = (tempCanvas.width - w) / 2;
+                    tempCtx.drawImage(tshirtImage, x, 0, w, h);
+                    applyPatternToTempCanvas(tempCtx, tempCanvas.width, tempCanvas.height, document.getElementById("patternSelect").value);
+                    drawCanvas(); // Redraw main canvas after temporary canvas is ready
+                };
+                // Return early if image is not loaded, redraw will happen on load
+                return;
+            }
+            
+            // Draw other objects (text, logos) on the main canvas
+            objects.forEach(obj => {
+                if (obj.type === 'text') {
+                    ctx.font = `${obj.fontSize}px ${obj.fontFamily}`;
+                    ctx.fillStyle = obj.color;
+                    ctx.fillText(obj.text, obj.x, obj.y);
+                } else if (obj.type === 'image') {
+                    ctx.drawImage(obj.image, obj.x, obj.y, obj.width, obj.height);
+                }
+            });
+        }
+
+        function saveState() {
+            currentState++;
+            states = states.slice(0, currentState);
+            states.push(JSON.stringify({ objects: objects, tshirtColor: tshirtColor, tshirtImageSrc: tshirtImage ? tshirtImage.src : null }));
+        }
+
+        function undo() {
+            if (currentState > 0) {
+                currentState--;
+                const state = JSON.parse(states[currentState]);
+                objects = state.objects;
+                tshirtColor = state.tshirtColor;
+                if (state.tshirtImageSrc) {
+                    tshirtImage.src = state.tshirtImageSrc;
+                    rebuildImages(() => drawCanvas());
+                } else {
+                    tshirtImage = null;
+                    drawCanvas();
+                }
+            }
+        }
+
+        function redo() {
+            if (currentState < states.length - 1) {
+                currentState++;
+                const state = JSON.parse(states[currentState]);
+                objects = state.objects;
+                tshirtColor = state.tshirtColor;
+                if (state.tshirtImageSrc) {
+                    tshirtImage.src = state.tshirtImageSrc;
+                    rebuildImages(() => drawCanvas());
+                } else {
+                    tshirtImage = null;
+                    drawCanvas();
+                }
+            }
+        }
+
+        function rebuildImages(callback) {
+            let pending = 0;
+            objects.forEach((obj, index) => {
+                if (obj.type === 'image') {
+                    pending++;
+                    let img = new Image();
+                    img.onload = function() {
+                        objects[index].image = img;
+                        pending--;
+                        if (pending === 0) callback();
+                    };
+                    img.src = obj.src;
+                }
+            });
+            if (pending === 0) callback();
+        }
+
+        document.getElementById('addTextBtn').addEventListener('click', () => {
+            const text = document.getElementById('textInput').value.trim();
+            if (!text) return alert('Please enter text');
+            const color = document.getElementById('textColor').value;
+            const fontFamily = document.getElementById('fontSelect').value;
+            objects.push({
+                type: 'text',
+                text: text,
+                color: color,
+                fontFamily: fontFamily,
+                fontSize: 40,
+                x: 50,
+                y: 100,
+            });
+            saveState();
+            drawCanvas();
+        });
+
+        document.getElementById('tshirtImageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    tshirtImage = img;
+                    drawCanvas();
+                    saveState();
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('tshirtColor').addEventListener('change', (e) => {
+            tshirtColor = e.target.value;
+            drawCanvas();
+            saveState();
+        });
+
+        document.getElementById('addLogoBtn').addEventListener('click', () => {
+            const input = document.getElementById('logoImageInput');
+            if (!input.files[0]) return alert('Please select an image to upload');
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const aspectRatio = img.width / img.height;
+                    const width = 100;
+                    const height = width / aspectRatio;
+                    objects.push({
+                        type: 'image',
+                        src: event.target.result,
+                        image: img,
+                        x: 50,
+                        y: 150,
+                        width: width,
+                        height: height
+                    });
+                    saveState();
+                    drawCanvas();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        });
+
+        canvas.addEventListener('mousedown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            for (let i = objects.length - 1; i >= 0; i--) {
+                const obj = objects[i];
+                if (obj.type === 'text') {
+                    ctx.font = `${obj.fontSize}px ${obj.fontFamily}`;
+                    const width = ctx.measureText(obj.text).width;
+                    const height = obj.fontSize;
+                    // Adjusted condition for text selection to account for y being baseline
+                    if (
+                        mouseX >= obj.x && mouseX <= obj.x + width &&
+                        mouseY <= obj.y && mouseY >= obj.y - height
+                    ) {
+                        draggingObj = obj;
+                        dragOffsetX = mouseX - obj.x;
+                        dragOffsetY = mouseY - obj.y;
+                        break;
+                    }
+                } else if (obj.type === 'image') {
+                    if (
+                        mouseX >= obj.x && mouseX <= obj.x + obj.width &&
+                        mouseY >= obj.y && mouseY <= obj.y + obj.height
+                    ) {
+                        draggingObj = obj;
+                        dragOffsetX = mouseX - obj.x;
+                        dragOffsetY = mouseY - obj.y;
+                        break;
+                    }
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (!draggingObj) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            draggingObj.x = mouseX - dragOffsetX;
+            draggingObj.y = mouseY - dragOffsetY;
+            drawCanvas();
+        });
+
+        canvas.addEventListener('mouseup', e => {
+            if (draggingObj) {
+                saveState();
+                draggingObj = null;
+            }
+        });
+
+        canvas.addEventListener('mouseleave', e => {
+            if (draggingObj) {
+                saveState();
+                draggingObj = null;
+            }
+        });
+
+        document.getElementById('undoBtn').addEventListener('click', undo);
+        document.getElementById('redoBtn').addEventListener('click', redo);
+
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = 'custom_outfit.png';
+            link.click();
+        });
+
+        document.getElementById('exportPdfBtn').addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: [canvas.width, canvas.height]
+            });
+            const dataURL = canvas.toDataURL('image/png');
+            pdf.addImage(dataURL, 'PNG', 0, 0, canvas.width, canvas.height);
+            pdf.save('custom_outfit.pdf');
+        });
+
+        {% if user.is_authenticated %}
+        document.getElementById('saveDesignBtn').addEventListener('click', () => {
+            const dataURL = canvas.toDataURL('image/png');
+            fetch("{% url 'save_design' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({ image_data: dataURL })
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Design saved successfully!');
+                } else {
+                    alert('Error saving design.');
+                }
+            })
+            .catch(error => {
+                alert('Network error saving design.');
+            });
+        });
+        {% endif %}
+
+        function loadPresetOutfit() {
+            const category = document.getElementById("categorySelect").value.toLowerCase();
+            const color = document.getElementById("colorSelect").value.toLowerCase();
+            const sleeve = document.getElementById("sleeveSelect").value.toLowerCase();
+            const filename = `${category}_${color}_${sleeve}.png`;
+            const img = new Image();
+            img.onload = function () {
+                tshirtImage = img;
+                drawCanvas();
+                saveState();
+            };
+            img.onerror = function() {
+                // Fallback if the specific image doesn't exist
+                console.warn(`Preset image not found: /static/preset_outfits/${filename}. Using blank T-shirt.`);
+                tshirtImage.src = '{% static "images/blank_tshirt.png" %}'; // Fallback to blank
+                drawCanvas();
+                saveState();
+            };
+            img.src = `/static/preset_outfits/${filename}`;
+        }
+        
+        document.getElementById("loadPresetBtn").addEventListener("click", loadPresetOutfit);
+        document.getElementById("patternSelect").addEventListener("change", drawCanvas);
+        document.getElementById("patternColor").addEventListener("input", drawCanvas);
+        document.getElementById("dotSize").addEventListener("input", drawCanvas);
+
+        // Event listeners for cost calculation
+        document.getElementById("categorySelect").addEventListener("change", () => {
+            const category = document.getElementById("categorySelect").value;
+            const sleeveSelect = document.getElementById("sleeveSelect");
+            const sleeveLabel = sleeveSelect.previousElementSibling; // Assuming label is the immediate previous sibling
+
+            if (category === "Hoodie") {
+                sleeveSelect.value = "Full"; // Set to Full for Hoodies
+                sleeveSelect.style.display = 'none'; // Hide the dropdown
+                sleeveLabel.style.display = 'none'; // Hide the label
+            } else {
+                sleeveSelect.style.display = ''; // Show the dropdown
+                sleeveLabel.style.display = ''; // Show the label
+            }
+            calculateCost();
+        });
+        document.getElementById("colorSelect").addEventListener("change", calculateCost);
+        document.getElementById("sleeveSelect").addEventListener("change", calculateCost);
+        document.getElementById("fabricSelect").addEventListener("change", calculateCost);
+
+        // Initialize with empty canvas state and calculate initial cost
+        saveState();
+        drawCanvas();
+        calculateCost(); // Calculate initial cost on page load
+    </script>
+</body>
+</html>
