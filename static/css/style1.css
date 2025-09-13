@@ -1,0 +1,770 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  background: url('https://wallpaperaccess.com/full/1448056.jpg') no-repeat center center fixed;
+  background-size: cover;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  /* Use flexbox for the entire body */
+  flex-direction: column;
+  /* Stack header, main content vertically */
+  min-height: 100vh;
+  /* Ensure body takes at least full viewport height */
+  color: #333;
+}
+
+/* Background Overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(251, 247, 247, 0.6);
+  /* Slightly more opaque overlay */
+  z-index: -1;
+}
+
+/* Header Styling */
+header {
+  background-color: #fff;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  position: relative;
+  /* For absolute positioning of links */
+  z-index: 10;
+  /* Ensure header is above main content if any overlap */
+}
+
+.center-heading {
+  font-size: 2.2rem;
+  /* Larger heading */
+  font-weight: 700;
+  color: #ff3f6c;
+  /* Brand color */
+  margin: 0.5rem 0;
+  letter-spacing: 1.5px;
+}
+
+.welcome-message {
+  display: block;
+  font-size: 0.95rem;
+  color: #555;
+  margin-top: 0.3rem;
+}
+
+.home-link,
+.other-link {
+  position: absolute;
+  top: 20px;
+  background: #333;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  z-index: 100;
+}
+
+.home-link {
+  left: 20px;
+}
+
+.other-link {
+  right: 20px;
+}
+
+.home-link:hover,
+.other-link:hover {
+  background-color: #555;
+  transform: scale(1.03);
+}
+
+/* Main Content Wrapper (Flex Container for Canvas and Controls) */
+/* This is the key for centering the main layout horizontally and vertically */
+.main-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  /* Default to column for small screens */
+  justify-content: center;
+  /* Center content vertically when column, horizontally when row */
+  align-items: center;
+  /* Center content horizontally when column, vertically when row */
+  flex-grow: 1;
+  /* Allow wrapper to take up available vertical space */
+  padding: 20px;
+  gap: 25px;
+  /* Space between columns/elements */
+  box-sizing: border-box;
+  /* Include padding in width/height calculations */
+}
+
+/* Media query for larger screens to switch to a row layout */
+@media (min-width: 1024px) {
+  .main-content-wrapper {
+    flex-direction: row;
+    /* Row layout for desktop */
+    /* align-items: center; and justify-content: center; already set above work for both */
+  }
+}
+
+/* Canvas Container */
+#canvas-container {
+  position: relative;
+  border: 1px solid #e0e0e0;
+  width: 500px;
+  /* Fixed width for canvas */
+  height: 600px;
+  /* Fixed height for canvas */
+  background-color: #fff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  /* Stronger shadow for depth */
+  border-radius: 12px;
+  /* Rounded corners */
+  overflow: hidden;
+  /* Hide any overflow from canvas content */
+  flex-shrink: 0;
+  /* Prevent canvas from shrinking */
+  max-width: 90vw;
+  /* Responsive: don't let it be wider than viewport */
+  max-height: 90vh;
+  /* Responsive: don't let it be taller than viewport */
+}
+
+#tshirtCanvas {
+  width: 100%;
+  height: 100%;
+  background-color: #f8f8f8;
+  /* Lighter background for canvas */
+  cursor: grab;
+  /* Indicate draggable */
+}
+
+#tshirtCanvas:active {
+  cursor: grabbing;
+}
+
+/* Individual Control Column Styling (e.g., Category Controls, Design Controls) */
+.controls-column {
+  background-color: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  /* Space between elements within a column */
+  width: 100%;
+  /* Take full width on smaller screens */
+  max-width: 400px;
+  /* Max width for controls on larger screens */
+  box-sizing: border-box;
+}
+
+.controls-column label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+  display: block;
+  /* Ensures label takes its own line */
+  font-size: 0.95rem;
+}
+
+.controls-column select,
+.controls-column input[type="text"],
+.controls-column input[type="range"],
+.controls-column input[type="file"] {
+  padding: 10px 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  width: calc(100% - 30px);
+  /* Adjust for padding to make it full width */
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.controls-column select:focus,
+.controls-column input[type="text"]:focus,
+.controls-column input[type="range"]:focus,
+.controls-column input[type="file"]:focus {
+  border-color: #ff3f6c;
+  /* Highlight on focus */
+  box-shadow: 0 0 0 3px rgba(255, 63, 108, 0.2);
+  /* Soft glow on focus */
+  outline: none;
+  /* Remove default outline */
+}
+
+/* Special styling for color input */
+.controls-column input[type="color"] {
+  -webkit-appearance: none;
+  /* Remove default browser styling */
+  -moz-appearance: none;
+  appearance: none;
+  border: none;
+  padding: 0;
+  width: 45px;
+  /* Fixed size for color picker */
+  height: 40px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  /* Subtle inner shadow */
+}
+
+.controls-column input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.controls-column input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 5px;
+}
+
+/* Combined label and input for dot size and font size */
+.size-group {
+  display: flex;
+  align-items: center;
+  /* Align items vertically in the center */
+  gap: 10px;
+}
+
+.size-group label {
+  margin-bottom: 0;
+  /* Remove extra margin */
+  flex-shrink: 0;
+  /* Prevent label from shrinking */
+}
+
+.size-group input[type="range"] {
+  flex-grow: 1;
+  /* Allow slider to take available space */
+  width: auto;
+  /* Override default width for range input */
+  padding: 0;
+  height: 25px;
+  /* Adjust height for range input */
+}
+
+.size-group .value-display {
+  font-weight: 500;
+  color: #555;
+  min-width: 30px;
+  /* Ensure value has space */
+  text-align: right;
+  flex-shrink: 0;
+  /* Prevent value from shrinking */
+}
+
+/* Buttons */
+.controls-column button {
+  background-color: #ff3f6c;
+  /* Primary brand color for buttons */
+  color: white;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 10px rgba(255, 63, 108, 0.2);
+  align-self: flex-start;
+  /* Align button to the start of the flex container */
+  width: fit-content;
+  /* Button width adjusts to content */
+}
+
+.controls-column button:hover {
+  background-color: #e0305a;
+  /* Darker on hover */
+  transform: translateY(-2px);
+  /* Slight lift effect */
+  box-shadow: 0 6px 15px rgba(255, 63, 108, 0.3);
+}
+
+.controls-column button:active {
+  transform: translateY(0);
+  /* Press down effect */
+  box-shadow: 0 2px 5px rgba(255, 63, 108, 0.2);
+}
+
+/* Estimated Cost */
+.controls-column p {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px dashed #eee;
+  /* Separator line */
+  width: 100%;
+  text-align: center;
+  font-size: 1.05rem;
+  color: #444;
+}
+
+#estimatedCost {
+  font-weight: bold;
+  color: #007bff;
+  /* Accent color for cost */
+  font-size: 1.3rem;
+  margin-left: 8px;
+}
+
+/* Button Group at the bottom of design controls */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  /* Allow buttons to wrap to next line */
+  gap: 10px;
+  /* Space between buttons */
+  margin-top: 15px;
+  justify-content: flex-start;
+  /* Align buttons to the start */
+}
+
+.button-group button {
+  flex-grow: 1;
+  /* Allow buttons to grow and fill space */
+  min-width: 120px;
+  /* Minimum width for buttons */
+  text-align: center;
+  align-self: stretch;
+  /* Make buttons the same height */
+  padding: 10px 15px;
+  /* Slightly smaller padding for group buttons */
+  font-size: 0.95rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #5cb85c;
+  /* Default button group color (e.g., Save) */
+}
+
+/* Specific colors for different action buttons */
+.button-group button#undoBtn,
+.button-group button#redoBtn {
+  background-color: #f0ad4e;
+  /* Orange for Undo/Redo */
+}
+
+.button-group button#exportBtn,
+.button-group button#exportPdfBtn {
+  background-color: #5bc0de;
+  /* Blue for Export */
+}
+
+.button-group button#saveDesignBtn {
+  background-color: #007bff;
+  /* Distinct blue for Save */
+}
+
+.button-group button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+
+  .home-link,
+  .other-link {
+    position: static;
+    /* Make links stack vertically */
+    display: block;
+    width: calc(100% - 40px);
+    /* Full width minus padding */
+    text-align: center;
+    margin: 10px auto;
+    /* Center them */
+  }
+
+  header {
+    padding-bottom: 10px;
+  }
+
+  .center-heading {
+    font-size: 1.8rem;
+  }
+
+  .main-content-wrapper {
+    padding: 15px;
+    gap: 20px;
+  }
+
+  #canvas-container {
+    width: 100%;
+    max-width: 400px;
+    /* Limit canvas size on smaller screens */
+    height: 480px;
+    /* Adjust height for smaller screens */
+    margin: 0 auto;
+    /* Center canvas horizontally */
+  }
+
+  .controls-column {
+    padding: 20px;
+    gap: 15px;
+    max-width: 100%;
+    /* Allow columns to take full width on small screens */
+  }
+
+  .button-group {
+    flex-direction: column;
+    /* Stack buttons vertically on small screens */
+  }
+
+  .button-group button {
+    width: 100%;
+    /* Full width for stacked buttons */
+    min-width: unset;
+    /* Remove min-width constraint */
+  }
+}
+
+/* New styles for pattern selection grid */
+#patternSelectionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  /* Responsive grid */
+  gap: 10px;
+  margin-top: 10px;
+  padding: 5px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  max-height: 200px;
+  /* Limit height and make scrollable */
+  overflow-y: auto;
+  background-color: #f9f9f9;
+}
+
+.pattern-thumbnail {
+  width: 80px;
+  height: 80px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  /* To stack name and pattern */
+  justify-content: center;
+  align-items: center;
+  font-size: 0.7rem;
+  /* Smaller font for name */
+  text-align: center;
+  color: #555;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  position: relative;
+  /* For the checkmark */
+  overflow: hidden;
+  /* Hide overflow for patterns */
+  padding-top: 20px;
+  /* Space for the name */
+}
+
+.pattern-thumbnail.selected {
+  border-color: #ff3f6c;
+  /* Highlight selected pattern */
+  box-shadow: 0 0 0 3px rgba(255, 63, 108, 0.3);
+  transform: translateY(-2px);
+}
+
+.pattern-thumbnail:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.pattern-thumbnail::after {
+  content: '✔';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  color: #ff3f6c;
+  font-size: 1.2rem;
+  font-weight: bold;
+  display: none;
+  /* Hidden by default */
+}
+
+.pattern-thumbnail.selected::after {
+  display: block;
+  /* Show checkmark when selected */
+}
+
+.pattern-thumbnail .pattern-name {
+  position: absolute;
+  top: 5px;
+  width: 100%;
+  text-align: center;
+  font-weight: bold;
+  color: #333;
+  font-size: 0.75rem;
+  z-index: 2;
+  /* Ensure name is above pattern */
+}
+
+.pattern-thumbnail .pattern-visual {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  opacity: 0.3;
+  /* Make patterns semi-transparent */
+}
+
+/* Basic CSS patterns for demonstration */
+.pattern-thumbnail[data-pattern="none"] .pattern-visual {
+  background-color: #f0f0f0;
+  opacity: 1;
+}
+
+.pattern-thumbnail[data-pattern="dots"] .pattern-visual {
+  background-image: radial-gradient(#333 15%, transparent 15%);
+  background-size: 20px 20px;
+}
+
+.pattern-thumbnail[data-pattern="checkerboard"] .pattern-visual {
+  background-image:
+    linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc),
+    linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+}
+
+.pattern-thumbnail[data-pattern="diagonal-stripes"] .pattern-visual {
+  background-image: linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%);
+  background-size: 20px 20px;
+}
+
+.pattern-thumbnail[data-pattern="crosshatch"] .pattern-visual {
+  background-image:
+    linear-gradient(to right, #ccc 1px, transparent 1px),
+    linear-gradient(to bottom, #ccc 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+
+.pattern-thumbnail[data-pattern="diamonds"] .pattern-visual {
+  background-image:
+    linear-gradient(45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%),
+    linear-gradient(-45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%);
+  background-size: 20px 20px;
+}
+
+/* Enhanced CSS patterns for demonstration */
+.pattern-thumbnail[data-pattern="floral"] .pattern-visual {
+  background-image:
+    radial-gradient(circle at 50% 50%, #ccc 15%, transparent 15%),
+    /* Center dot */
+    radial-gradient(circle at 20% 40%, #ccc 10%, transparent 10%),
+    radial-gradient(circle at 80% 40%, #ccc 10%, transparent 10%),
+    radial-gradient(circle at 35% 75%, #ccc 10%, transparent 10%),
+    radial-gradient(circle at 65% 75%, #ccc 10%, transparent 10%);
+  background-size: 30px 30px;
+  background-repeat: repeat;
+}
+
+.pattern-thumbnail[data-pattern="paisleys"] .pattern-visual {
+  background-image:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="40" viewBox="0 0 30 40"><path fill="%23ccc" d="M15 0 C25 10 25 30 15 40 C5 30 5 10 15 0 Z M15 10 A5 5 0 0 1 15 20 A5 5 0 0 1 15 10 Z"/></svg>');
+  background-size: 30px 40px;
+  background-repeat: repeat;
+  background-position: center;
+}
+
+.pattern-thumbnail[data-pattern="damask"] .pattern-visual {
+  background-image:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"><path fill="%23ccc" d="M25 0 L35 15 L50 25 L35 35 L25 50 L15 35 L0 25 L15 15 Z"/></svg>');
+  background-size: 50px 50px;
+  background-repeat: repeat;
+}
+
+.pattern-thumbnail[data-pattern="scroll"] .pattern-visual {
+  background-image:
+    linear-gradient(90deg, transparent 50%, #ccc 50%),
+    linear-gradient(180deg, transparent 50%, #ccc 50%);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+  /* Creates a small checker-like effect */
+  /* This is a very simplified scroll, more like a woven texture. */
+}
+
+.pattern-thumbnail[data-pattern="argyle"] .pattern-visual {
+  background-image:
+    linear-gradient(45deg, transparent 45%, #ccc 45%, #ccc 55%, transparent 55%),
+    linear-gradient(-45deg, transparent 45%, #ccc 45%, #ccc 55%, transparent 55%);
+  background-size: 20px 20px;
+}
+
+.pattern-thumbnail[data-pattern="trellis"] .pattern-visual {
+  background-image:
+    linear-gradient(45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%),
+    linear-gradient(-45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%);
+  background-size: 20px 20px;
+}
+
+.pattern-thumbnail[data-pattern="ogee"] .pattern-visual {
+  background-image:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20" viewBox="0 0 40 20"><path fill="none" stroke="%23ccc" stroke-width="2" d="M0 10 Q10 0 20 10 Q30 20 40 10"/></svg>');
+  background-size: 40px 20px;
+  background-repeat: repeat-x;
+}
+
+.pattern-thumbnail[data-pattern="chevron"] .pattern-visual {
+  background-image: linear-gradient(45deg, transparent 25%, #ccc 25%, #ccc 50%, transparent 50%, transparent 75%, #ccc 75%);
+  background-size: 20px 20px;
+}
+
+.pattern-thumbnail[data-pattern="aboriginal"] .pattern-visual {
+  background-image: radial-gradient(circle, #ccc 10%, transparent 10%), radial-gradient(circle at 100% 100%, #ccc 10%, transparent 10%);
+  background-size: 15px 15px;
+  background-position: 0 0, 7.5px 7.5px;
+}
+
+.pattern-thumbnail[data-pattern="houndstooth"] .pattern-visual {
+  background-image:
+    linear-gradient(45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%),
+    linear-gradient(-45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+  /* Slight offset for houndstooth effect */
+}
+
+.pattern-thumbnail[data-pattern="moroccan"] .pattern-visual {
+  background-image:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><path fill="%23ccc" d="M20 0 L30 10 L40 20 L30 30 L20 40 L10 30 L0 20 L10 10 Z"/></svg>');
+  background-size: 40px 40px;
+  background-repeat: repeat;
+}
+
+.pattern-thumbnail[data-pattern="fleur-de-lis"] .pattern-visual {
+  background-image:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30"><path fill="%23ccc" d="M15 0 C10 10 10 20 15 30 C20 20 20 10 15 0 Z M10 10 C15 5 20 10 15 15 C10 10 5 5 10 10 Z"/></svg>');
+  background-size: 30px 30px;
+  background-repeat: repeat;
+}
+
+.pattern-thumbnail[data-pattern="quatrefoil"] .pattern-visual {
+  background-image:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="10" cy="10" r="10" fill="%23ccc"/><circle cx="30" cy="10" r="10" fill="%23ccc"/><circle cx="10" cy="30" r="10" fill="%23ccc"/><circle cx="30" cy="30" r="10" fill="%23ccc"/></svg>');
+  background-size: 40px 40px;
+  background-repeat: repeat;
+}
+
+.pattern-thumbnail[data-pattern="lattice"] .pattern-visual {
+  background-image:
+    linear-gradient(to right, #ccc 1px, transparent 1px),
+    linear-gradient(to bottom, #ccc 1px, transparent 1px);
+  background-size: 15px 15px;
+}
+
+/* Added new patterns */
+.pattern-thumbnail[data-pattern="waves"] .pattern-visual {
+  background-image:
+    radial-gradient(circle at 100% 0%, transparent 20%, #ccc 20%, #ccc 22%, transparent 22%),
+    radial-gradient(circle at 0% 100%, transparent 20%, #ccc 20%, #ccc 22%, transparent 22%);
+  background-size: 40px 40px;
+}
+
+.pattern-thumbnail[data-pattern="bricks"] .pattern-visual {
+  background-image:
+    linear-gradient(90deg, #ccc 1px, transparent 1px),
+    linear-gradient(180deg, #ccc 1px, transparent 1px);
+  background-size: 20px 10px;
+  background-position: 0 0, 10px 5px;
+}
+
+.pattern-thumbnail[data-pattern="honeycomb"] .pattern-visual {
+  background-image:
+    url('data:image/svg+xml;utf8,<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M0 10 L5 0 L15 0 L20 10 L15 20 L5 20 Z" fill="none" stroke="%23ccc" stroke-width="1"/></svg>');
+  background-size: 20px 20px;
+  background-repeat: repeat;
+  background-position: 0 0;
+}
+
+.pattern-thumbnail[data-pattern="scales"] .pattern-visual {
+  background-image:
+    radial-gradient(circle at 50% 100%, transparent 49%, #ccc 50%);
+  background-size: 20px 20px;
+  background-repeat: repeat-x;
+  background-position: 0 0, 10px 10px;
+}
+
+.pattern-thumbnail[data-pattern="weave"] .pattern-visual {
+  background-image:
+    linear-gradient(to right, #ccc 2px, transparent 2px, transparent 8px, #ccc 8px),
+    linear-gradient(to bottom, #ccc 2px, transparent 2px, transparent 8px, #ccc 8px);
+  background-size: 10px 10px;
+  background-position: 0 0, 5px 5px;
+}
+
+.pattern-thumbnail[data-pattern="concentric-circles"] .pattern-visual {
+  background-image:
+    radial-gradient(circle, #ccc 10%, transparent 10%, transparent 20%, #ccc 20%, #ccc 30%, transparent 30%);
+  background-size: 40px 40px;
+}
+
+.pattern-thumbnail[data-pattern="stripes-vertical"] .pattern-visual {
+  background-image: linear-gradient(to right, #ccc 50%, transparent 50%);
+  background-size: 20px 100%;
+}
+
+.pattern-thumbnail[data-pattern="stripes-horizontal"] .pattern-visual {
+  background-image: linear-gradient(to bottom, #ccc 50%, transparent 50%);
+  background-size: 100% 20px;
+}
+
+.pattern-thumbnail[data-pattern="dots-small"] .pattern-visual {
+  background-image: radial-gradient(#333 5%, transparent 5%);
+  background-size: 10px 10px;
+}
+
+.pattern-thumbnail[data-pattern="grid"] .pattern-visual {
+  background-image:
+    linear-gradient(to right, #ccc 2px, transparent 2px),
+    linear-gradient(to bottom, #ccc 2px, transparent 2px);
+  background-size: 20px 20px;
+}
+
+.pattern-thumbnail[data-pattern="herringbone"] .pattern-visual {
+  background-image:
+    linear-gradient(45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%),
+    linear-gradient(-45deg, transparent 49%, #ccc 49%, #ccc 51%, transparent 51%);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 0;
+  /* Offset to create herringbone effect */
+}
+
+.pattern-thumbnail[data-pattern="basketweave"] .pattern-visual {
+  background-image:
+    linear-gradient(90deg, #ccc 33%, transparent 33%, transparent 66%, #ccc 66%),
+    linear-gradient(0deg, transparent 33%, #ccc 33%, #ccc 66%, transparent 66%);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+.pattern-thumbnail[data-pattern="zig-zag"] .pattern-visual {
+  background-image:
+    linear-gradient(135deg, transparent 25%, #ccc 25%, #ccc 50%, transparent 50%),
+    linear-gradient(-135deg, transparent 25%, #ccc 25%, #ccc 50%, transparent 50%);
+  background-size: 30px 30px;
+}
+
+.pattern-thumbnail[data-pattern="polka-large"] .pattern-visual {
+  background-image: radial-gradient(#333 25%, transparent 25%);
+  background-size: 40px 40px;
+}
+
+.pattern-thumbnail[data-pattern="pyramids"] .pattern-visual {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #ccc 50%),
+    linear-gradient(-45deg, transparent 50%, #ccc 50%);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 0;
+}
